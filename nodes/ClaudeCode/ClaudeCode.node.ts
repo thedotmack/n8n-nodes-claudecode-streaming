@@ -235,7 +235,6 @@ export class ClaudeCode implements INodeType {
 				interface QueryOptions {
 					prompt: string;
 					abortController: AbortController;
-					cwd?: string;
 					options: {
 						maxTurns: number;
 						permissionMode: 'default' | 'bypassPermissions';
@@ -244,6 +243,7 @@ export class ClaudeCode implements INodeType {
 						mcpServers?: Record<string, any>;
 						allowedTools?: string[];
 						continue?: boolean;
+						cwd?: string;
 					};
 				}
 
@@ -264,9 +264,9 @@ export class ClaudeCode implements INodeType {
 
 				// Add project path (cwd) if specified
 				if (projectPath && projectPath.trim() !== '') {
-					queryOptions.cwd = projectPath.trim();
+					queryOptions.options.cwd = projectPath.trim();
 					if (additionalOptions.debug) {
-						console.log(`[ClaudeCode] Working directory set to: ${queryOptions.cwd}`);
+						console.log(`[ClaudeCode] Working directory set to: ${queryOptions.options.cwd}`);
 					}
 				}
 
