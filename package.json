@@ -1,7 +1,7 @@
 {
-  "name": "@holtweb/n8n-nodes-claudecode",
-  "version": "0.2.1",
-  "description": "n8n node for Claude Code SDK integration with MCP support",
+  "name": "@thedotmack/n8n-nodes-claudecode-streaming",
+  "version": "0.1.0",
+  "description": "n8n node for Claude Code SDK integration with MCP support and Slack streaming",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -30,12 +30,12 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "npx rimraf dist && tsc && gulp build:icons",
+    "build": "bunx rimraf dist && bun run tsc && bun run gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes --write",
     "lint": "eslint nodes package.json",
     "lintfix": "eslint nodes package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes package.json"
+    "prepublishOnly": "bun run build && bun run lint -c .eslintrc.prepublish.js nodes package.json"
   },
   "files": [
     "dist"
@@ -43,7 +43,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "nodes": [
-      "dist/nodes/ClaudeCode/ClaudeCode.node.js"
+      "dist/nodes/ClaudeCode/ClaudeCodeStreaming.node.js"
     ]
   },
   "dependencies": {
