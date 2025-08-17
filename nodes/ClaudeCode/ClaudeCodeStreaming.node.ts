@@ -43,28 +43,28 @@ export class ClaudeCodeStreaming implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'New Thread',
+						name: 'Create',
 						value: 'newThread',
-						description: 'Start a new persistent conversation with automatic or custom thread ID',
-						action: 'Start a new conversation thread with a unique id',
+						description: 'Create a new conversation thread with automatic or custom thread ID',
+						action: 'Create new conversation thread',
 					},
 					{
-						name: 'Continue Thread',
+						name: 'Update',
 						value: 'continueThread',
-						description: 'Continue a specific conversation using its thread ID (preserves full context)',
-						action: 'Continue a specific conversation thread by id',
+						description: 'Update a specific conversation using its thread ID (preserves full context)',
+						action: 'Update specific conversation thread by ID',
 					},
 					{
-						name: 'Continue Last',
+						name: 'Get',
 						value: 'continueLast',
-						description: 'Continue the most recently active conversation thread',
-						action: 'Continue the most recent conversation',
+						description: 'Retrieve the most recently active conversation thread',
+						action: 'Get the most recent conversation',
 					},
 					{
-						name: 'List Threads',
+						name: 'Get Many',
 						value: 'listThreads',
-						description: 'Get all conversation threads with metadata and timestamps',
-						action: 'List all available conversation threads',
+						description: 'Retrieve all conversation threads with metadata and timestamps',
+						action: 'Get all available conversation threads',
 					},
 				],
 				default: 'newThread',
@@ -156,7 +156,7 @@ export class ClaudeCodeStreaming implements INodeType {
 				default: '',
 				description:
 					'The directory path where Claude Code should run (e.g., /path/to/project). If empty, uses the current working directory.',
-				placeholder: '/home/user/projects/my-app',
+				placeholder: 'e.g., /home/user/projects/my-app',
 				hint: 'This sets the working directory for Claude Code, allowing it to access files and run commands in the specified project location',
 			},
 			{
@@ -188,6 +188,18 @@ export class ClaudeCodeStreaming implements INodeType {
 				],
 				default: 'structured',
 				description: 'Choose how to format the output data',
+			},
+			{
+				displayName: 'Simplify',
+				name: 'simplify',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to return a simplified version of the response instead of the raw data',
+				displayOptions: {
+					show: {
+						outputFormat: ['structured', 'threadInfo'],
+					},
+				},
 			},
 			{
 				displayName: 'Allowed Tools',
@@ -241,7 +253,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						type: 'string',
 						default: '',
 						description: 'Slack webhook URL to send streaming updates to',
-						placeholder: 'https://hooks.slack.com/services/...',
+						placeholder: 'e.g., https://hooks.slack.com/services/...',
 						displayOptions: {
 							show: {
 								enableStreaming: [true],
@@ -352,7 +364,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						default: '',
 						description: 'Additional context or instructions for Claude Code',
 						placeholder:
-							'You are helping with a Python project. Focus on clean, readable code with proper error handling.',
+							'e.g., You are helping with a Python project. Focus on clean, readable code with proper error handling.',
 					},
 					{
 						displayName: 'Require Permissions',
@@ -403,6 +415,7 @@ export class ClaudeCodeStreaming implements INodeType {
 				timeout = this.getNodeParameter('timeout', itemIndex) as number;
 				const projectPath = this.getNodeParameter('projectPath', itemIndex) as string;
 				const outputFormat = this.getNodeParameter('outputFormat', itemIndex) as string;
+				const simplify = this.getNodeParameter('simplify', itemIndex, false) as boolean;
 				const allowedTools = this.getNodeParameter('allowedTools', itemIndex, []) as string[];
 				const streamingOptions = this.getNodeParameter('streamingOptions', itemIndex) as {
 					enableStreamingOutput?: boolean;
@@ -793,20 +806,36 @@ export class ClaudeCodeStreaming implements INodeType {
 							pairedItem: itemIndex,
 						});
 					} else if (outputFormat === 'threadInfo') {
-						// Return detailed thread information
-						returnData.push({
-							json: {
-								threadId,
-								createdAt: updatedThreadData.createdAt,
-								lastMessageAt: updatedThreadData.lastMessageAt,
-								totalMessages: updatedThreadData.messageHistory.length,
-								currentSessionMessages: messages.length,
-								metadata: updatedThreadData.metadata,
-								messages: threadManagement.includeTimestamps !== false ? messages : messages,
-								fullHistory: updatedThreadData.messageHistory,
-							},
-							pairedItem: itemIndex,
-						});
+						// Return thread information
+						if (simplify) {
+							// Simplified thread info with max 10 most useful fields
+							returnData.push({
+								json: {
+									threadId,
+									createdAt: updatedThreadData.createdAt,
+									lastMessageAt: updatedThreadData.lastMessageAt,
+									totalMessages: updatedThreadData.messageHistory.length,
+									currentSessionMessages: messages.length,
+									messagesSample: messages.slice(-3), // Last 3 messages only
+								},
+								pairedItem: itemIndex,
+							});
+						} else {
+							// Full thread information
+							returnData.push({
+								json: {
+									threadId,
+									createdAt: updatedThreadData.createdAt,
+									lastMessageAt: updatedThreadData.lastMessageAt,
+									totalMessages: updatedThreadData.messageHistory.length,
+									currentSessionMessages: messages.length,
+									metadata: updatedThreadData.metadata,
+									messages: threadManagement.includeTimestamps !== false ? messages : messages,
+									fullHistory: updatedThreadData.messageHistory,
+								},
+								pairedItem: itemIndex,
+							});
+						}
 					} else if (outputFormat === 'structured') {
 						// Parse into structured format
 						const userMessages = messages.filter((m) => m.type === 'user');
@@ -820,41 +849,61 @@ export class ClaudeCodeStreaming implements INodeType {
 						) as any;
 						const resultMessage = messages.find((m) => m.type === 'result') as any;
 
-						returnData.push({
-							json: {
-								threadId,
-								threadInfo: {
+						if (simplify) {
+							// Simplified output with max 10 most useful fields
+							returnData.push({
+								json: {
+									threadId,
+									result: resultMessage?.result || resultMessage?.error || null,
+									success: resultMessage?.subtype === 'success',
 									createdAt: updatedThreadData.createdAt,
 									lastMessageAt: updatedThreadData.lastMessageAt,
 									totalMessages: updatedThreadData.messageHistory.length,
-									metadata: updatedThreadData.metadata,
-								},
-								messages,
-								summary: {
 									userMessageCount: userMessages.length,
 									assistantMessageCount: assistantMessages.length,
 									toolUseCount: toolUses.length,
-									hasResult: !!resultMessage,
-									toolsAvailable: systemInit?.tools || [],
+									duration_ms: resultMessage?.duration_ms || null,
 								},
-								result: resultMessage?.result || resultMessage?.error || null,
-								metrics: resultMessage
-									? {
-											duration_ms: resultMessage.duration_ms,
-											num_turns: resultMessage.num_turns,
-											total_cost_usd: resultMessage.total_cost_usd,
-											usage: resultMessage.usage,
-										}
-									: null,
-								success: resultMessage?.subtype === 'success',
-								streaming: {
-									enabled: streamingOptions.enableStreaming,
-									format: streamingOptions.streamFormat,
-									webhookUrl: streamingOptions.webhookUrl ? '[REDACTED]' : null,
+								pairedItem: itemIndex,
+							});
+						} else {
+							// Full structured output
+							returnData.push({
+								json: {
+									threadId,
+									threadInfo: {
+										createdAt: updatedThreadData.createdAt,
+										lastMessageAt: updatedThreadData.lastMessageAt,
+										totalMessages: updatedThreadData.messageHistory.length,
+										metadata: updatedThreadData.metadata,
+									},
+									messages,
+									summary: {
+										userMessageCount: userMessages.length,
+										assistantMessageCount: assistantMessages.length,
+										toolUseCount: toolUses.length,
+										hasResult: !!resultMessage,
+										toolsAvailable: systemInit?.tools || [],
+									},
+									result: resultMessage?.result || resultMessage?.error || null,
+									metrics: resultMessage
+										? {
+												duration_ms: resultMessage.duration_ms,
+												num_turns: resultMessage.num_turns,
+												total_cost_usd: resultMessage.total_cost_usd,
+												usage: resultMessage.usage,
+											}
+										: null,
+									success: resultMessage?.subtype === 'success',
+									streaming: {
+										enabled: streamingOptions.enableStreaming,
+										format: streamingOptions.streamFormat,
+										webhookUrl: streamingOptions.webhookUrl ? '[REDACTED]' : null,
+									},
 								},
-							},
-							pairedItem: itemIndex,
-						});
+								pairedItem: itemIndex,
+							});
+						}
 					}
 
 					// Add streaming messages to output if enabled
