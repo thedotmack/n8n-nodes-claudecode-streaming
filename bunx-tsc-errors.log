@@ -1,0 +1,4 @@
+nodes/ClaudeCode/ClaudeCodeStreaming.node.ts(437,6): error TS2322: Type 'string | number | true | object | null' is not assignable to type 'ThreadData | null'.
+  Type 'string' is not assignable to type 'ThreadData'.
+nodes/ClaudeCode/ClaudeCodeStreaming.node.ts(456,6): error TS2322: Type 'string | number | true | object | null' is not assignable to type 'ThreadData | null'.
+  Type 'string' is not assignable to type 'ThreadData'.
