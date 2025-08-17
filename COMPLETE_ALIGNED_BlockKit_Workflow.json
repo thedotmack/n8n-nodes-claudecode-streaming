@@ -1,0 +1,263 @@
+{
+  "name": "Complete Aligned Block Kit Streaming Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C09ANU1Q0QZ",
+          "mode": "list",
+          "cachedResultName": "tom-docs"
+        },
+        "options": {
+          "resolveIds": true,
+          "userIds": [
+            "U09A8P90WJZ",
+            "U099X4RDR8X",
+            "USLACKBOT",
+            "U099YKRV92P"
+          ]
+        }
+      },
+      "id": "0b579cd0-76b2-4696-8d94-06c3a41bbb5e",
+      "name": "On Message Received",
+      "type": "n8n-nodes-base.slackTrigger",
+      "position": [
+        -1488,
+        16
+      ],
+      "webhookId": "8ff651f2-5030-47a5-a8d6-ed44a0fc89f6",
+      "typeVersion": 1,
+      "notesInFlow": false,
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f358685e-0880-4bf2-ad3e-b0a47f3c4b49",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "file_share",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a73b0566-8526-4dd1-9523-d77b6067f592",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        16
+      ],
+      "id": "a0e35bc5-4355-4b19-8a26-5e981b3ee216",
+      "name": "Filter Noise"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18cd6060-8730-4e20-9096-90af6030b75e",
+              "leftValue": "={{ $('On Message Received').item.json.thread_ts }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -848,
+        -160
+      ],
+      "id": "d5b01b24-7c8c-4599-8c52-65f2cfcc2dfe",
+      "name": "If New Convo"
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $json.ts }}",
+        "name": "eyes"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -848,
+        144
+      ],
+      "id": "efff0fa5-861e-434a-80e6-e87589a50fc6",
+      "name": "Add a reaction",
+      "webhookId": "e09979d3-2bc1-4ac8-b9a9-f40cf370e548",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "customThreadId": "={{ $('On Message Received').item.json.ts }}",
+        "prompt": "={{ $('On Message Received').item.json.text }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        -176
+      ],
+      "id": "d43523b1-6211-4aa0-add8-86105c9811ce",
+      "name": "[CC Streaming] New Query"
+    },
+    {
+      "parameters": {
+        "operation": "continueThread",
+        "threadId": "={{ $('On Message Received').item.json.thread_ts }}",
+        "prompt": "={{ $('On Message Received').item.json.text }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        128
+      ],
+      "id": "5b732287-51a8-40f1-9897-1cb26b73e8d2",
+      "name": "[CC Streaming] Continue Thread",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Streaming Processor with Block Kit for New Queries\n// Processes streaming messages and creates both initial and update Block Kit messages\n\nasync function processNewQueryStreaming() {\n  const streamingData = $input.all();\n  \n  if (!streamingData || streamingData.length === 0) {\n    console.log('No streaming data received');\n    return [];\n  }\n\n  const results = [];\n  \n  for (const item of streamingData) {\n    if (!item.json.streamingMessages) {\n      continue;\n    }\n    \n    const {\n      threadId,\n      streamingMessages,\n      messageCount,\n      executionId,\n      streamingFormat\n    } = item.json;\n    \n    // Get additional context from the original trigger\n    const originalMessage = $('On Message Received').item.json;\n    const channel = originalMessage.channel;\n    const event_ts = originalMessage.event_ts;\n    const prompt = originalMessage.text || '';\n    \n    // Process each streaming message individually\n    for (let i = 0; i < streamingMessages.length; i++) {\n      const streamingMessage = streamingMessages[i];\n      const isLastMessage = i === streamingMessages.length - 1;\n      \n      // Determine if this should trigger an update\n      const shouldUpdate = shouldTriggerUpdate(streamingMessage, i, streamingMessages);\n      \n      if (shouldUpdate) {\n        // Create Block Kit update payload\n        const blockKitPayload = createBlockKitMessage(\n          streamingMessage,\n          streamingMessages.slice(0, i + 1), // All messages up to this point\n          threadId,\n          originalMessage,\n          isLastMessage,\n          i === 0 // isInitialMessage\n        );\n        \n        results.push({\n          json: {\n            ...blockKitPayload,\n            messageIndex: i,\n            totalMessages: streamingMessages.length,\n            isLastMessage,\n            executionId,\n            updateType: getUpdateType(streamingMessage),\n            routeTo: determineRoute(getUpdateType(streamingMessage), i, isLastMessage),\n            priority: getPriority(getUpdateType(streamingMessage)),\n            shouldUpdate: true\n          }\n        });\n      }\n    }\n  }\n  \n  return results;\n}\n\n/**\n * Determines if a streaming message should trigger a Slack update\n */\nfunction shouldTriggerUpdate(message, index, allMessages) {\n  // Always update on first message\n  if (index === 0) return true;\n  \n  // Always update on last message\n  if (index === allMessages.length - 1) return true;\n  \n  // Update on important message types\n  if (message.type === 'start' || message.type === 'completion' || message.type === 'error') {\n    return true;\n  }\n  \n  // Update on tool usage\n  if (message.type === 'tool_use') {\n    return true;\n  }\n  \n  // Update every 5 messages to avoid spam\n  if (index % 5 === 0) return true;\n  \n  // Update if significant time has passed (more than 3 seconds)\n  if (index > 0) {\n    const currentTime = new Date(message.timestamp).getTime();\n    const lastTime = new Date(allMessages[index - 1].timestamp).getTime();\n    if (currentTime - lastTime > 3000) return true;\n  }\n  \n  return false;\n}\n\n/**\n * Creates Block Kit message structure\n */\nfunction createBlockKitMessage(currentMessage, allMessages, threadId, originalMessage, isLastMessage, isInitialMessage) {\n  const channel = originalMessage.channel;\n  const event_ts = originalMessage.event_ts;\n  const prompt = originalMessage.text || '';\n  \n  // Determine status\n  const status = isLastMessage ? 'completed' : 'running';\n  const statusIcon = isLastMessage ? '✅' : '⚡';\n  const statusText = isLastMessage ? 'Claude Code execution completed' : 'Claude Code is working...';\n  \n  // Create Block Kit structure\n  const blocks = [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `${statusIcon} *${statusText}*`\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Request:*\\n${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}`\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Thread ID:*\\n\\`${threadId}\\``\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*Latest Update:*\\n${currentMessage.message}`\n      }\n    }\n  ];\n\n  // Add tool usage summary if present\n  const toolMessages = allMessages.filter(msg => \n    msg.type === 'tool_use' || \n    msg.message.includes('🔧') || \n    msg.message.includes('📁') ||\n    msg.message.includes('🔍') ||\n    msg.message.includes('✏️')\n  );\n  \n  if (toolMessages.length > 0) {\n    const recentTools = toolMessages.slice(-3); // Show last 3 tools\n    const toolSummary = recentTools.map(msg => `• ${msg.message}`).join('\\n');\n    \n    blocks.push({\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*Recent Tools:*\\n${toolSummary}${toolMessages.length > 3 ? `\\n_...and ${toolMessages.length - 3} more_` : ''}`\n      }\n    });\n  }\n\n  // Add progress context\n  const progressText = createProgressText(allMessages, isLastMessage);\n  blocks.push({\n    \"type\": \"context\",\n    \"elements\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": progressText\n      }\n    ]\n  });\n\n  // Add action buttons for completed messages\n  if (isLastMessage && status === 'completed') {\n    blocks.push({\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"Continue Chat\"\n          },\n          \"style\": \"primary\",\n          \"action_id\": \"continue_chat_\" + threadId\n        },\n        {\n          \"type\": \"button\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"View Details\"\n          },\n          \"action_id\": \"view_details_\" + threadId\n        }\n      ]\n    });\n  }\n\n  return {\n    channel: channel,\n    thread_ts: event_ts,\n    messageType: isInitialMessage ? 'initial' : 'update',\n    blocks: JSON.stringify(blocks),\n    text: createFallbackText(currentMessage, isLastMessage), // Fallback text\n    currentMessage: currentMessage,\n    allStreamingMessages: allMessages,\n    threadId: threadId,\n    timestamp: new Date().toISOString()\n  };\n}\n\n/**\n * Helper functions\n */\nfunction getUpdateType(message) {\n  if (message.type === 'start') return 'start';\n  if (message.type === 'completion') return 'completion';\n  if (message.type === 'error') return 'error';\n  if (message.type === 'tool_use') return 'tool_use';\n  return 'progress';\n}\n\nfunction determineRoute(updateType, messageIndex, isLastMessage) {\n  if (messageIndex === 0) return 'initial';\n  if (isLastMessage) return 'final';\n  if (updateType === 'error') return 'error';\n  if (updateType === 'tool_use') return 'tool_update';\n  return 'progress';\n}\n\nfunction getPriority(updateType) {\n  const priorities = {\n    'start': 1,\n    'error': 1,\n    'completion': 1,\n    'tool_use': 2,\n    'progress': 3\n  };\n  return priorities[updateType] || 3;\n}\n\nfunction createProgressText(allMessages, isLastMessage) {\n  if (isLastMessage) {\n    const duration = calculateDuration(allMessages);\n    return `✅ Completed with ${allMessages.length} updates${duration ? ` in ${duration}` : ''}`;\n  } else {\n    const elapsed = getTimeElapsed(allMessages);\n    return `⏳ ${allMessages.length} updates • ${elapsed}`;\n  }\n}\n\nfunction calculateDuration(messages) {\n  if (messages.length < 2) return null;\n  \n  const firstTime = new Date(messages[0].timestamp).getTime();\n  const lastTime = new Date(messages[messages.length - 1].timestamp).getTime();\n  const duration = Math.round((lastTime - firstTime) / 1000);\n  \n  if (duration < 60) {\n    return `${duration}s`;\n  } else {\n    const minutes = Math.floor(duration / 60);\n    const seconds = duration % 60;\n    return `${minutes}m ${seconds}s`;\n  }\n}\n\nfunction getTimeElapsed(messages) {\n  if (messages.length < 2) return 'Just started';\n  \n  const firstTime = new Date(messages[0].timestamp).getTime();\n  const lastTime = new Date(messages[messages.length - 1].timestamp).getTime();\n  const elapsed = Math.round((lastTime - firstTime) / 1000);\n  \n  if (elapsed < 60) {\n    return `${elapsed}s elapsed`;\n  } else {\n    const minutes = Math.floor(elapsed / 60);\n    const seconds = elapsed % 60;\n    return `${minutes}m ${seconds}s elapsed`;\n  }\n}\n\nfunction createFallbackText(currentMessage, isLastMessage) {\n  const prefix = isLastMessage ? '✅ Claude Code completed:' : '⚡ Claude Code update:';\n  return `${prefix} ${currentMessage.message}`;\n}\n\n// Main execution\nreturn processNewQueryStreaming();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -160
+      ],
+      "id": "b738f08b-3124-43e7-ad5f-7551d1725859",
+      "name": "Enhanced Streaming Processor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Streaming Message Router with Block Kit support\n// Routes different types of streaming updates to appropriate handlers\n\nfunction routeStreamingUpdates() {\n  const items = $input.all();\n  \n  if (!items || items.length === 0) {\n    return [];\n  }\n\n  const results = [];\n  \n  for (const item of items) {\n    const { updateType, messageIndex, isLastMessage, messageType } = item.json;\n    \n    // Add routing information while preserving Block Kit data\n    const routedItem = {\n      json: {\n        ...item.json,\n        routeTo: determineRoute(updateType, messageIndex, isLastMessage),\n        priority: getPriority(updateType),\n        shouldUpdate: true,\n        // Ensure Block Kit data is preserved\n        blocks: item.json.blocks,\n        text: item.json.text,\n        channel: item.json.channel,\n        thread_ts: item.json.thread_ts\n      }\n    };\n    \n    results.push(routedItem);\n  }\n  \n  return results;\n}\n\nfunction determineRoute(updateType, messageIndex, isLastMessage) {\n  if (messageIndex === 0) return 'initial';\n  if (isLastMessage) return 'final';\n  if (updateType === 'error') return 'error';\n  if (updateType === 'tool_use') return 'tool_update';\n  return 'progress';\n}\n\nfunction getPriority(updateType) {\n  const priorities = {\n    'start': 1,\n    'error': 1,\n    'completion': 1,\n    'tool_use': 2,\n    'progress': 3\n  };\n  return priorities[updateType] || 3;\n}\n\nreturn routeStreamingUpdates();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -160
+      ],
+      "id": "5e2c9de6-2c2f-4706-be02-c341d4d1c09c",
+      "name": "Streaming Router"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "rate-limit-check",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",\n                \"operation\": \"lte\"\n              }\n            }\n          ],\n          \"combinator\": \"or\"\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.if\",\n      \"typeVersion\": 2.2,\n      \"position\": [\n        480,\n        -160\n      ],\n      \"id\": \"2dca16b9-cf4a-4d90-b006-aad8333bae3f\",\n      \"name\": \"Priority Filter\"\n    },\n    {\n      \"parameters\": {\n        \"conditions\": {\n          \"options\": {\n            \"caseSensitive\": true,\n            \"leftValue\": \"\",\n            \"typeValidation\": \"strict\",\n            \"version\": 2\n          },\n          \"conditions\": [\n            {\n              \"id\": \"initial-message-check\",\n              \"leftValue\": \"={{ $json.messageType }}\",\n              \"rightValue\": \"initial\",\n              \"operator\": {\n                \"type\": \"string\",\n                \"operation\": \"equals\"\n              }\n            }\n          ],\n          \"combinator\": \"or\"\n        },\n        \"options\": {}\n      },\n      \"type\": \"n8n-nodes-base.if\",\n      \"typeVersion\": 2.2,\n      \"position\": [\n        784,\n        -160\n      ],\n      \"id\": \"message-type-router\",\n      \"name\": \"Message Type Router\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"message\",\n        \"operation\": \"post\",\n        \"select\": \"channel\",\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $json.channel }}\",\n          \"mode\": \"id\"\n        },\n        \"messageType\": \"block\",\n        \"blocksUi\": \"={{ $json.blocks }}\",\n        \"text\": \"={{ $json.text }}\",\n        \"otherOptions\": {\n          \"thread_ts\": {\n            \"replyValues\": {\n              \"thread_ts\": \"={{ $json.thread_ts }}\",\n              \"reply_broadcast\": false\n            }\n          }\n        }\n      },\n      \"type\": \"n8n-nodes-base.slack\",\n      \"typeVersion\": 2.3,\n      \"position\": [\n        1088,\n        -288\n      ],\n      \"id\": \"0324cb04-7540-4a29-bfd7-b1ff70365d6e\",\n      \"name\": \"Send Initial Block Kit Message\",\n      \"webhookId\": \"674c5f9e-0684-417b-a410-e302974ca570\",\n      \"onError\": \"continueRegularOutput\",\n      \"credentials\": {\n        \"slackApi\": {\n          \"id\": \"Gz8fbHHn1c1YObO6\",\n          \"name\": \"Slack account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// Message State Manager for Initial Messages\\n// Stores the initial message timestamp for subsequent updates\\n\\nconst items = $input.all();\\nconst results = [];\\n\\nfor (const item of items) {\\n  if (item.json.message && item.json.message.ts) {\\n    // This is a response from Slack with the message timestamp\\n    const messageTs = item.json.message.ts;\\n    const threadId = item.json.message.thread_ts || item.json.message.ts;\\n    \\n    // Store this for subsequent updates\\n    results.push({\\n      json: {\\n        ...item.json,\\n        storedMessageTs: messageTs,\\n        threadId: threadId,\\n        action: 'initial_sent',\\n        // Pass through for workflow static data storage\\n        workflowStaticData: {\\n          [`message_ts_${threadId}`]: messageTs\\n        }\\n      }\\n    });\\n  } else {\\n    // Pass through other items\\n    results.push(item);\\n  }\\n}\\n\\nreturn results;\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        1392,\n        -288\n      ],\n      \"id\": \"message-state-manager\",\n      \"name\": \"Store Message Timestamp\",\n      \"onError\": \"continueRegularOutput\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"message\",\n        \"operation\": \"update\",\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $json.channel }}\",\n          \"mode\": \"id\"\n        },\n        \"ts\": \"={{ $('Store Message Timestamp').item.json.storedMessageTs || $json.thread_ts }}\",\n        \"messageType\": \"block\",\n        \"blocksUi\": \"={{ $json.blocks }}\",\n        \"text\": \"={{ $json.text }}\"\n      },\n      \"type\": \"n8n-nodes-base.slack\",\n      \"typeVersion\": 2.3,\n      \"position\": [\n        1088,\n        -32\n      ],\n      \"id\": \"update-block-kit-message\",\n      \"name\": \"Update Block Kit Message\",\n      \"onError\": \"continueRegularOutput\",\n      \"credentials\": {\n        \"slackApi\": {\n          \"id\": \"Gz8fbHHn1c1YObO6\",\n          \"name\": \"Slack account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"select\": \"channel\",\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $('If New Convo').item.json.channel }}\",\n          \"mode\": \"id\"\n        },\n        \"text\": \"={{ $json.result || $json.error }}\",\n        \"otherOptions\": {\n          \"includeLinkToWorkflow\": false,\n          \"thread_ts\": {\n            \"replyValues\": {\n              \"thread_ts\": \"={{ $('On Message Received').item.json.event_ts }}\",\n              \"reply_broadcast\": true\n            }\n          },\n          \"mrkdwn\": true\n        }\n      },\n      \"type\": \"n8n-nodes-base.slack\",\n      \"typeVersion\": 2.3,\n      \"position\": [\n        16,\n        -496\n      ],\n      \"id\": \"4744a902-59bd-4efe-8249-ca4e8ac186fb\",\n      \"name\": \"Reply in Thread\",\n      \"webhookId\": \"b862b6d1-dffe-4500-b660-179e5e61b3c0\",\n      \"alwaysOutputData\": false,\n      \"onError\": \"continueRegularOutput\",\n      \"credentials\": {\n        \"slackApi\": {\n          \"id\": \"Gz8fbHHn1c1YObO6\",\n          \"name\": \"Slack account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"select\": \"channel\",\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $('If New Convo').item.json.channel }}\",\n          \"mode\": \"id\"\n        },\n        \"text\": \"={{ $json.result || $json.error }}\",\n        \"otherOptions\": {\n          \"includeLinkToWorkflow\": false,\n          \"thread_ts\": {\n            \"replyValues\": {\n              \"thread_ts\": \"={{ $('On Message Received').item.json.event_ts }}\",\n              \"reply_broadcast\": true\n            }\n          },\n          \"mrkdwn\": true\n        }\n      },\n      \"type\": \"n8n-nodes-base.slack\",\n      \"typeVersion\": 2.3,\n      \"position\": [\n        0,\n        480\n      ],\n      \"id\": \"716b5c33-c70a-4350-8c8a-dd8e6b37b61f\",\n      \"name\": \"Reply to Follow Up\",\n      \"webhookId\": \"78c04752-61e8-4f66-8cee-5cbf24fcba91\",\n      \"onError\": \"continueRegularOutput\",\n      \"credentials\": {\n        \"slackApi\": {\n          \"id\": \"Gz8fbHHn1c1YObO6\",\n          \"name\": \"Slack account\"\n        }\n      }\n    },\n    {\n      \"parameters\": {\n        \"jsCode\": \"// Continue Thread Block Kit Processor\\n// Enhanced version for continue operations with Block Kit\\n\\nconst streamingData = $input.all();\\n\\nif (!streamingData || streamingData.length === 0) {\\n  return [];\\n}\\n\\nconst results = [];\\n\\nfor (const item of streamingData) {\\n  if (!item.json.streamingMessages) {\\n    continue;\\n  }\\n  \\n  const {\\n    threadId,\\n    streamingMessages,\\n    messageCount,\\n    executionId\\n  } = item.json;\\n  \\n  const originalMessage = $('On Message Received').item.json;\\n  const channel = originalMessage.channel;\\n  const event_ts = originalMessage.event_ts;\\n  const prompt = originalMessage.text || '';\\n  \\n  // Process streaming messages for continue thread with Block Kit\\n  for (let i = 0; i < streamingMessages.length; i++) {\\n    const streamingMessage = streamingMessages[i];\\n    const isLastMessage = i === streamingMessages.length - 1;\\n    \\n    // Create Block Kit structure for continue operations\\n    if (i === 0 || isLastMessage || streamingMessage.type === 'tool_use' || i % 3 === 0) {\\n      const status = isLastMessage ? 'completed' : 'running';\\n      const statusIcon = isLastMessage ? '✅' : '🔄';\\n      const statusText = isLastMessage ? 'Continue Thread Completed' : 'Continue Thread Update';\\n      \\n      const blocks = [\\n        {\\n          \\\"type\\\": \\\"section\\\",\\n          \\\"text\\\": {\\n            \\\"type\\\": \\\"mrkdwn\\\",\\n            \\\"text\\\": `${statusIcon} *${statusText}*`\\n          }\\n        },\\n        {\\n          \\\"type\\\": \\\"section\\\",\\n          \\\"fields\\\": [\\n            {\\n              \\\"type\\\": \\\"mrkdwn\\\",\\n              \\\"text\\\": `*Follow-up:*\\\\n${prompt.substring(0, 150)}${prompt.length > 150 ? '...' : ''}`\\n            },\\n            {\\n              \\\"type\\\": \\\"mrkdwn\\\",\\n              \\\"text\\\": `*Thread ID:*\\\\n\\\\`${threadId}\\\\``\\n            }\\n          ]\\n        },\\n        {\\n          \\\"type\\\": \\\"divider\\\"\\n        },\\n        {\\n          \\\"type\\\": \\\"section\\\",\\n          \\\"text\\\": {\\n            \\\"type\\\": \\\"mrkdwn\\\",\\n            \\\"text\\\": `*Update:*\\\\n${streamingMessage.message}`\\n          }\\n        },\\n        {\\n          \\\"type\\\": \\\"context\\\",\\n          \\\"elements\\\": [\\n            {\\n              \\\"type\\\": \\\"mrkdwn\\\",\\n              \\\"text\\\": isLastMessage ? `✅ Continue completed with ${i + 1} updates` : `🔄 ${i + 1} updates • Continuing...`\\n            }\\n          ]\\n        }\\n      ];\\n      \\n      const updatePayload = {\\n        channel: channel,\\n        thread_ts: event_ts,\\n        blocks: JSON.stringify(blocks),\\n        text: `Continue: ${streamingMessage.message}`,\\n        threadId: threadId,\\n        updateType: 'continue_' + (streamingMessage.type || 'progress'),\\n        messageIndex: i,\\n        totalMessages: streamingMessages.length,\\n        isLastMessage,\\n        executionId\\n      };\\n      \\n      results.push({ json: updatePayload });\\n    }\\n  }\\n}\\n\\nreturn results;\"\n      },\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        -128,\n        144\n      ],\n      \"id\": \"bc68ea53-090d-47af-a813-d548b5c9fd12\",\n      \"name\": \"Continue Block Kit Processor\",\n      \"onError\": \"continueRegularOutput\"\n    },\n    {\n      \"parameters\": {\n        \"resource\": \"message\",\n        \"operation\": \"post\",\n        \"select\": \"channel\",\n        \"channelId\": {\n          \"__rl\": true,\n          \"value\": \"={{ $json.channel }}\",\n          \"mode\": \"id\"\n        },\n        \"messageType\": \"block\",\n        \"blocksUi\": \"={{ $json.blocks }}\",\n        \"text\": \"={{ $json.text }}\",\n        \"otherOptions\": {\n          \"includeLinkToWorkflow\": false,\n          \"thread_ts\": {\n            \"replyValues\": {\n              \"thread_ts\": \"={{ $json.thread_ts }}\",\n              \"reply_broadcast\": false\n            }\n          }\n        }\n      },\n      \"type\": \"n8n-nodes-base.slack\",\n      \"typeVersion\": 2.3,\n      \"position\": [\n        176,\n        144\n      ],\n      \"id\": \"3680235a-4a68-4481-95bf-af41c76a5034\",\n      \"name\": \"Continue Block Kit Update\",\n      \"webhookId\": \"b2a7aaf5-c48a-4a50-9c5d-8519fa3023f4\",\n      \"onError\": \"continueRegularOutput\",\n      \"credentials\": {\n        \"slackApi\": {\n          \"id\": \"Gz8fbHHn1c1YObO6\",\n          \"name\": \"Slack account\"\n        }\n      }\n    }\n  ],\n  \"connections\": {\n    \"On Message Received\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Filter Noise\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"If New Convo\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"[CC Streaming] New Query\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ],\n        [\n          {\n            \"node\": \"[CC Streaming] Continue Thread\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Filter Noise\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"If New Convo\",\n            \"type\": \"main\",\n            \"index\": 0\n          },\n          {\n            \"node\": \"Add a reaction\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"[CC Streaming] New Query\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Reply in Thread\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ],\n        [\n          {\n            \"node\": \"Enhanced Streaming Processor\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"[CC Streaming] Continue Thread\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Reply to Follow Up\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ],\n        [\n          {\n            \"node\": \"Continue Block Kit Processor\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Enhanced Streaming Processor\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Streaming Router\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Streaming Router\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Priority Filter\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Priority Filter\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Message Type Router\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Message Type Router\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Send Initial Block Kit Message\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ],\n        [\n          {\n            \"node\": \"Update Block Kit Message\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Send Initial Block Kit Message\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Store Message Timestamp\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Continue Block Kit Processor\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Continue Block Kit Update\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  },\n  \"active\": false,\n  \"settings\": {\n    \"executionOrder\": \"v1\"\n  },\n  \"versionId\": \"complete-aligned-block-kit\",\n  \"meta\": {\n    \"instanceId\": \"complete-aligned-workflow\"\n  },\n  \"id\": \"CompleteAlignedBlockKitWorkflow\",\n  \"tags\": [\"complete\", \"aligned\", \"block-kit\", \"streaming\", \"validated\"]\n}

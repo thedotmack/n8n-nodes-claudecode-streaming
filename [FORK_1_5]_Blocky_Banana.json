@@ -1,5 +1,5 @@
 {
-  "name": "Claude Code Streaming - Real-time Updates",
+  "name": "[FORK 1.5] Blocky Banana",
   "nodes": [
     {
       "parameters": {
@@ -22,12 +22,12 @@
           ]
         }
       },
-      "id": "66964a53-7ed6-4cda-bd20-445dd4aeff4c",
+      "id": "0b579cd0-76b2-4696-8d94-06c3a41bbb5e",
       "name": "On Message Received",
       "type": "n8n-nodes-base.slackTrigger",
       "position": [
-        944,
-        32
+        -1488,
+        16
       ],
       "webhookId": "8ff651f2-5030-47a5-a8d6-ed44a0fc89f6",
       "typeVersion": 1,
@@ -76,10 +76,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1232,
-        32
+        -1200,
+        16
       ],
-      "id": "8db4d869-8e1e-4944-a29e-9b37479a86f5",
+      "id": "a0e35bc5-4355-4b19-8a26-5e981b3ee216",
       "name": "Filter Noise"
     },
     {
@@ -111,10 +111,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1584,
-        -128
+        -848,
+        -160
       ],
-      "id": "d8f58c08-8c58-48c4-9cba-24dd1c89c392",
+      "id": "d5b01b24-7c8c-4599-8c52-65f2cfcc2dfe",
       "name": "If New Convo"
     },
     {
@@ -131,10 +131,10 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        1584,
-        160
+        -848,
+        144
       ],
-      "id": "4ec6194a-6084-44dc-b596-f3cfc96769a1",
+      "id": "efff0fa5-861e-434a-80e6-e87589a50fc6",
       "name": "Add a reaction",
       "webhookId": "e09979d3-2bc1-4ac8-b9a9-f40cf370e548",
       "credentials": {
@@ -174,10 +174,10 @@
       "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [
-        1968,
-        -144
+        -464,
+        -176
       ],
-      "id": "92b512db-dab7-4777-9549-97298150431e",
+      "id": "d43523b1-6211-4aa0-add8-86105c9811ce",
       "name": "[CC Streaming] New Query"
     },
     {
@@ -211,10 +211,10 @@
       "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [
-        1968,
-        144
+        -464,
+        128
       ],
-      "id": "6567d002-2d73-469b-b90a-5c4c490dc235",
+      "id": "5b732287-51a8-40f1-9897-1cb26b73e8d2",
       "name": "[CC Streaming] Continue Thread",
       "onError": "continueRegularOutput"
     },
@@ -225,10 +225,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2300,
-        -144
+        -128,
+        -160
       ],
-      "id": "streaming-processor-new",
+      "id": "b738f08b-3124-43e7-ad5f-7551d1725859",
       "name": "Streaming Processor"
     },
     {
@@ -238,10 +238,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2600,
-        -144
+        176,
+        -160
       ],
-      "id": "streaming-router",
+      "id": "5e2c9de6-2c2f-4706-be02-c341d4d1c09c",
       "name": "Streaming Router"
     },
     {
@@ -257,7 +257,7 @@
             {
               "id": "rate-limit-check",
               "leftValue": "={{ $json.priority }}",
-              "rightValue": "2",
+              "rightValue": 2,
               "operator": {
                 "type": "number",
                 "operation": "lte"
@@ -271,10 +271,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2900,
-        -144
+        480,
+        -160
       ],
-      "id": "priority-filter",
+      "id": "2dca16b9-cf4a-4d90-b006-aad8333bae3f",
       "name": "Priority Filter"
     },
     {
@@ -285,12 +285,7 @@
           "value": "={{ $json.channel }}",
           "mode": "id"
         },
-        "messageText": {
-          "messageUi": "blocks",
-          "blocks": {
-            "values": "={{ $json.blocks }}"
-          }
-        },
+        "text": "{{ $json.result }}",
         "otherOptions": {
           "includeLinkToWorkflow": false,
           "thread_ts": {
@@ -304,11 +299,12 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        3200,
-        -244
+        848,
+        -288
       ],
-      "id": "real-time-slack-update",
+      "id": "0324cb04-7540-4a29-bfd7-b1ff70365d6e",
       "name": "Real-time Slack Update",
+      "webhookId": "674c5f9e-0684-417b-a410-e302974ca570",
       "credentials": {
         "slackApi": {
           "id": "Gz8fbHHn1c1YObO6",
@@ -339,10 +335,10 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        2432,
-        -344
+        16,
+        -496
       ],
-      "id": "149fb4b3-1484-4391-b161-62b500e83d60",
+      "id": "4744a902-59bd-4efe-8249-ca4e8ac186fb",
       "name": "Reply in Thread",
       "webhookId": "b862b6d1-dffe-4500-b660-179e5e61b3c0",
       "alwaysOutputData": false,
@@ -377,10 +373,10 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        2416,
-        384
+        0,
+        480
       ],
-      "id": "b051ac1d-d05e-4d82-b085-80dcd2a10985",
+      "id": "716b5c33-c70a-4350-8c8a-dd8e6b37b61f",
       "name": "Reply to Follow Up",
       "webhookId": "78c04752-61e8-4f66-8cee-5cbf24fcba91",
       "credentials": {
@@ -398,10 +394,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2300,
+        -128,
         144
       ],
-      "id": "continue-streaming-processor",
+      "id": "bc68ea53-090d-47af-a813-d548b5c9fd12",
       "name": "Continue Streaming Processor"
     },
     {
@@ -412,12 +408,7 @@
           "value": "={{ $json.channel }}",
           "mode": "id"
         },
-        "messageText": {
-          "messageUi": "blocks",
-          "blocks": {
-            "values": "={{ $json.blocks }}"
-          }
-        },
+        "text": "{{ $json.result }}",
         "otherOptions": {
           "includeLinkToWorkflow": false,
           "thread_ts": {
@@ -431,11 +422,12 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        2600,
+        176,
         144
       ],
-      "id": "continue-slack-update",
+      "id": "3680235a-4a68-4481-95bf-af41c76a5034",
       "name": "Continue Slack Update",
+      "webhookId": "b2a7aaf5-c48a-4a50-9c5d-8519fa3023f4",
       "credentials": {
         "slackApi": {
           "id": "Gz8fbHHn1c1YObO6",
@@ -572,14 +564,14 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
-    "timezone": "America/New_York",
-    "saveExecutionProgress": true,
-    "callerPolicy": "workflowsFromSameOwner",
     "executionOrder": "v1"
   },
+  "versionId": "4cee7195-0365-4574-92a6-0c6b65585a7c",
   "meta": {
-    "templateCreatedBy": "Claude Code Streaming Enhancement"
-  }
+    "instanceId": "a05210b476fa640672a7c86424ec8108aff686f288b0dd16da68e95e1ed40ce5"
+  },
+  "id": "hLaHis0ICX6zR5Y2",
+  "tags": []
 }

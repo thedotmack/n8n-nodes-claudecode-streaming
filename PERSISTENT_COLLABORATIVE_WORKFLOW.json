@@ -1,0 +1,585 @@
+{
+  "name": "Persistent Collaborative Chat with Auto-Compaction",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C09ANU1Q0QZ",
+          "mode": "list",
+          "cachedResultName": "tom-docs"
+        },
+        "options": {
+          "resolveIds": true,
+          "userIds": [
+            "U09A8P90WJZ",
+            "U099X4RDR8X",
+            "USLACKBOT",
+            "U099YKRV92P"
+          ]
+        }
+      },
+      "id": "slack-trigger",
+      "name": "On Message Received",
+      "type": "n8n-nodes-base.slackTrigger",
+      "position": [
+        -1200,
+        0
+      ],
+      "webhookId": "8ff651f2-5030-47a5-a8d6-ed44a0fc89f6",
+      "typeVersion": 1,
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "file-share-filter",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "file_share",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "no-subtype-filter",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -900,
+        0
+      ],
+      "id": "noise-filter",
+      "name": "Filter Noise"
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $json.ts }}",
+        "name": "eyes"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -900,
+        200
+      ],
+      "id": "acknowledge-reaction",
+      "name": "Add Reaction",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Context Monitor - load from external file\n// This code is loaded from context-monitor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/context-monitor.js', 'utf8'));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ],
+      "id": "context-monitor",
+      "name": "Context Monitor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "compaction-trigger-check",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "trigger_compaction",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "compaction-router",
+      "name": "Compaction Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-Compaction Manager - load from external file\n// This code is loaded from auto-compaction-manager.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/auto-compaction-manager.js', 'utf8'));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -200
+      ],
+      "id": "compaction-manager",
+      "name": "Auto-Compaction Manager",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compaction Status Blocks - load from external file\n// This code is loaded from compaction-status-blocks.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/compaction-status-blocks.js', 'utf8'));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -200
+      ],
+      "id": "status-blocks",
+      "name": "Compaction Status Blocks",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ $json.blocks }}",
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        600,
+        -200
+      ],
+      "id": "compaction-status-message",
+      "name": "Send Compaction Status",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "continueThread",
+        "threadId": "={{ $json.threadId }}",
+        "prompt": "={{ $json.prompt }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "claude-persistent",
+      "name": "Claude Code Persistent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Streaming Processor for Persistent Chat\n// Processes streaming messages and creates Block Kit updates\n\nasync function processCollaborativeStreaming() {\n  const streamingData = $input.all();\n  \n  if (!streamingData || streamingData.length === 0) {\n    console.log('No streaming data received');\n    return [];\n  }\n\n  const results = [];\n  \n  for (const item of streamingData) {\n    if (!item.json.streamingMessages) {\n      continue;\n    }\n    \n    const {\n      threadId,\n      streamingMessages,\n      messageCount,\n      executionId\n    } = item.json;\n    \n    // Get original message context\n    const originalMessage = $('On Message Received').item.json;\n    const channel = originalMessage.channel;\n    const event_ts = originalMessage.event_ts;\n    const prompt = originalMessage.text || '';\n    \n    // Process streaming messages for persistent collaborative chat\n    for (let i = 0; i < streamingMessages.length; i++) {\n      const streamingMessage = streamingMessages[i];\n      const isLastMessage = i === streamingMessages.length - 1;\n      \n      // Smart filtering for persistent chat (less frequent updates)\n      if (shouldCreateCollaborativeUpdate(streamingMessage, i, streamingMessages)) {\n        const blockKitPayload = createCollaborativeBlockKit(\n          streamingMessage,\n          streamingMessages.slice(0, i + 1),\n          threadId,\n          originalMessage,\n          isLastMessage,\n          i === 0\n        );\n        \n        results.push({\n          json: {\n            ...blockKitPayload,\n            messageIndex: i,\n            totalMessages: streamingMessages.length,\n            isLastMessage,\n            executionId,\n            updateType: getUpdateType(streamingMessage),\n            isPersistentChat: true\n          }\n        });\n      }\n    }\n  }\n  \n  return results;\n}\n\n/**\n * Smart filtering for collaborative chat (reduce noise)\n */\nfunction shouldCreateCollaborativeUpdate(message, index, allMessages) {\n  // Always update on first and last messages\n  if (index === 0 || index === allMessages.length - 1) return true;\n  \n  // Update on important events\n  if (message.type === 'tool_use' || message.type === 'error') return true;\n  \n  // Less frequent updates for collaborative chat (every 8 messages instead of 5)\n  if (index % 8 === 0) return true;\n  \n  // Update if significant time gap (5+ seconds instead of 3)\n  if (index > 0) {\n    const currentTime = new Date(message.timestamp).getTime();\n    const lastTime = new Date(allMessages[index - 1].timestamp).getTime();\n    if (currentTime - lastTime > 5000) return true;\n  }\n  \n  return false;\n}\n\n/**\n * Create Block Kit for collaborative persistent chat\n */\nfunction createCollaborativeBlockKit(currentMessage, allMessages, threadId, originalMessage, isLastMessage, isInitialMessage) {\n  const channel = originalMessage.channel;\n  const event_ts = originalMessage.event_ts;\n  const prompt = originalMessage.text || '';\n  \n  const status = isLastMessage ? 'completed' : 'working';\n  const statusIcon = isLastMessage ? '✅' : '⚡';\n  const statusText = isLastMessage ? 'Response completed' : 'Claude Code working...';\n  \n  const blocks = [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `${statusIcon} *${statusText}*`\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Request:*\\n${prompt.substring(0, 150)}${prompt.length > 150 ? '...' : ''}`\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Chat Type:*\\nPersistent Collaborative`\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*Status:*\\n${currentMessage.message}`\n      }\n    }\n  ];\n\n  // Add tool usage if present\n  const toolMessages = allMessages.filter(msg => msg.type === 'tool_use');\n  if (toolMessages.length > 0) {\n    const recentTools = toolMessages.slice(-2);\n    const toolSummary = recentTools.map(msg => `• ${msg.message}`).join('\\n');\n    \n    blocks.push({\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*Tools Used:*\\n${toolSummary}${toolMessages.length > 2 ? `\\n_...and ${toolMessages.length - 2} more_` : ''}`\n      }\n    });\n  }\n\n  // Add progress context\n  const progressText = isLastMessage ? \n    `✅ Collaborative response completed (${allMessages.length} updates)` :\n    `⚡ ${allMessages.length} updates • Collaborating...`;\n\n  blocks.push({\n    \"type\": \"context\",\n    \"elements\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": progressText\n      }\n    ]\n  });\n\n  return {\n    channel: channel,\n    thread_ts: event_ts,\n    messageType: isInitialMessage ? 'initial' : 'update',\n    blocks: JSON.stringify(blocks),\n    text: `${statusIcon} ${statusText}: ${currentMessage.message}`,\n    currentMessage: currentMessage,\n    allStreamingMessages: allMessages,\n    threadId: threadId,\n    timestamp: new Date().toISOString()\n  };\n}\n\nfunction getUpdateType(message) {\n  if (message.type === 'start') return 'start';\n  if (message.type === 'completion') return 'completion';\n  if (message.type === 'error') return 'error';\n  if (message.type === 'tool_use') return 'tool_use';\n  return 'progress';\n}\n\n// Execute the main function\nreturn processCollaborativeStreaming();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        200
+      ],
+      "id": "collaborative-streaming",
+      "name": "Collaborative Streaming Processor",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "initial-message-check",
+              "leftValue": "={{ $json.messageType }}",
+              "rightValue": "initial",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        200
+      ],
+      "id": "message-type-router",
+      "name": "Message Type Router"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ $json.blocks }}",
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.thread_ts }}",
+              "reply_broadcast": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        900,
+        100
+      ],
+      "id": "initial-collaborative-message",
+      "name": "Send Initial Collaborative Message",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store initial message timestamp for updates\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  if (item.json.message && item.json.message.ts) {\n    const messageTs = item.json.message.ts;\n    const threadId = item.json.message.thread_ts || item.json.message.ts;\n    \n    results.push({\n      json: {\n        ...item.json,\n        storedMessageTs: messageTs,\n        threadId: threadId,\n        action: 'collaborative_initial_sent'\n      }\n    });\n  } else {\n    results.push(item);\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        100
+      ],
+      "id": "store-message-timestamp",
+      "name": "Store Message Timestamp",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "update",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "ts": "={{ $('Store Message Timestamp').item.json.storedMessageTs || $json.thread_ts }}",
+        "messageType": "block",
+        "blocksUi": "={{ $json.blocks }}",
+        "text": "={{ $json.text }}"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        900,
+        300
+      ],
+      "id": "update-collaborative-message",
+      "name": "Update Collaborative Message",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.result || $json.error }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.event_ts }}",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        300,
+        400
+      ],
+      "id": "final-response",
+      "name": "Send Final Response",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On Message Received": {
+      "main": [
+        [
+          {
+            "node": "Filter Noise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Noise": {
+      "main": [
+        [
+          {
+            "node": "Context Monitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Add Reaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Monitor": {
+      "main": [
+        [
+          {
+            "node": "Compaction Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compaction Router": {
+      "main": [
+        [
+          {
+            "node": "Auto-Compaction Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Claude Code Persistent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Compaction Manager": {
+      "main": [
+        [
+          {
+            "node": "Compaction Status Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compaction Status Blocks": {
+      "main": [
+        [
+          {
+            "node": "Send Compaction Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Code Persistent": {
+      "main": [
+        [
+          {
+            "node": "Send Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collaborative Streaming Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collaborative Streaming Processor": {
+      "main": [
+        [
+          {
+            "node": "Message Type Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Type Router": {
+      "main": [
+        [
+          {
+            "node": "Send Initial Collaborative Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Collaborative Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Initial Collaborative Message": {
+      "main": [
+        [
+          {
+            "node": "Store Message Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "persistent-collaborative-v1",
+  "meta": {
+    "instanceId": "persistent-collaborative-chat"
+  },
+  "id": "PersistentCollaborativeWorkflow",
+  "tags": ["persistent", "collaborative", "auto-compaction", "simplified"],
+  "notes": {
+    "description": "Simplified persistent collaborative chat with intelligent auto-compaction. Features: single thread management, automatic context optimization, smart Block Kit status updates, and seamless human-AI collaboration.",
+    "nodeCount": 16,
+    "reductionFrom": "17 nodes (original dual-path system)",
+    "keyFeatures": [
+      "Single persistent thread per channel",
+      "Automatic context monitoring and compaction", 
+      "Intelligent Claude Code summarization",
+      "Rich Block Kit status updates during compaction",
+      "Memory management with workflow static data",
+      "Collaborative streaming with reduced noise",
+      "Professional compaction status messages"
+    ]
+  }
+}
