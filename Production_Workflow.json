@@ -1,0 +1,535 @@
+{
+  "name": "[FORK 1.4] WIP: Slackbot Streamy",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C09ANU1Q0QZ",
+          "mode": "list",
+          "cachedResultName": "tom-docs"
+        },
+        "options": {
+          "resolveIds": true,
+          "userIds": [
+            "U09A8P90WJZ",
+            "U099X4RDR8X",
+            "USLACKBOT",
+            "U099YKRV92P"
+          ]
+        }
+      },
+      "id": "66964a53-7ed6-4cda-bd20-445dd4aeff4c",
+      "name": "On Message Received",
+      "type": "n8n-nodes-base.slackTrigger",
+      "position": [
+        944,
+        32
+      ],
+      "webhookId": "8ff651f2-5030-47a5-a8d6-ed44a0fc89f6",
+      "typeVersion": 1,
+      "notesInFlow": false,
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('If New Convo').item.json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.result || $json.error }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('On Message Received').item.json.event_ts }}",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2432,
+        -160
+      ],
+      "id": "149fb4b3-1484-4391-b161-62b500e83d60",
+      "name": "Reply in Thread",
+      "webhookId": "b862b6d1-dffe-4500-b660-179e5e61b3c0",
+      "alwaysOutputData": false,
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('If New Convo').item.json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.result || $json.error }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('On Message Received').item.json.event_ts }}",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2416,
+        384
+      ],
+      "id": "b051ac1d-d05e-4d82-b085-80dcd2a10985",
+      "name": "Reply to Follow Up",
+      "webhookId": "78c04752-61e8-4f66-8cee-5cbf24fcba91",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18cd6060-8730-4e20-9096-90af6030b75e",
+              "leftValue": "={{ $('On Message Received').item.json.thread_ts }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        -128
+      ],
+      "id": "d8f58c08-8c58-48c4-9cba-24dd1c89c392",
+      "name": "If New Convo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f358685e-0880-4bf2-ad3e-b0a47f3c4b49",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "file_share",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a73b0566-8526-4dd1-9523-d77b6067f592",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        32
+      ],
+      "id": "8db4d869-8e1e-4944-a29e-9b37479a86f5",
+      "name": "Filter Noise"
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $json.ts }}",
+        "name": "eyes"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        160
+      ],
+      "id": "4ec6194a-6084-44dc-b596-f3cfc96769a1",
+      "name": "Add a reaction",
+      "webhookId": "e09979d3-2bc1-4ac8-b9a9-f40cf370e548",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "customThreadId": "={{ $('On Message Received').item.json.ts }}",
+        "prompt": "={{ $('On Message Received').item.json.text }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        -144
+      ],
+      "id": "92b512db-dab7-4777-9549-97298150431e",
+      "name": "[CC Streaming] New Query"
+    },
+    {
+      "parameters": {
+        "operation": "continueThread",
+        "threadId": "={{ $('On Message Received').item.json.thread_ts }}",
+        "prompt": "={{ $('On Message Received').item.json.text }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        144
+      ],
+      "id": "6567d002-2d73-469b-b90a-5c4c490dc235",
+      "name": "[CC Streaming] Continue Thread",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('On Message Received').item.json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('On Message Received').item.json.event_ts }}",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2624,
+        -384
+      ],
+      "id": "d3c7e921-a4cf-4267-b833-1dd01dbf5034",
+      "name": "Stream in Thread",
+      "webhookId": "b862b6d1-dffe-4500-b660-179e5e61b3c0",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "streamingMessages",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        -384
+      ],
+      "id": "990dba53-873a-4582-b5bc-f390353d799b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "streamingMessages",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        160
+      ],
+      "id": "de7fc175-8110-4274-b4be-5d9f348eba9d",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('On Message Received').item.json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('On Message Received').item.json.event_ts }}",
+              "reply_broadcast": true
+            }
+          },
+          "mrkdwn": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2624,
+        160
+      ],
+      "id": "84b910c6-6a74-4ab6-afcb-0383f235745b",
+      "name": "Stream The Continue",
+      "webhookId": "b862b6d1-dffe-4500-b660-179e5e61b3c0",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On Message Received": {
+      "main": [
+        [
+          {
+            "node": "Filter Noise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If New Convo": {
+      "main": [
+        [
+          {
+            "node": "[CC Streaming] New Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[CC Streaming] Continue Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Noise": {
+      "main": [
+        [
+          {
+            "node": "If New Convo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Add a reaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply to Follow Up": {
+      "main": [
+        []
+      ]
+    },
+    "[CC Streaming] New Query": {
+      "main": [
+        [
+          {
+            "node": "Reply in Thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "[CC Streaming] Continue Thread": {
+      "main": [
+        [
+          {
+            "node": "Reply to Follow Up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stream in Thread": {
+      "main": [
+        []
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Stream in Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Stream The Continue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "America/New_York",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "versionId": "7b93f636-e0ff-472e-b5bf-8f6cbf87a026",
+  "meta": {
+    "templateId": "5749",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a05210b476fa640672a7c86424ec8108aff686f288b0dd16da68e95e1ed40ce5"
+  },
+  "id": "yOacsNdGnbnAimKa",
+  "tags": [
+    {
+      "createdAt": "2025-08-13T20:53:45.606Z",
+      "updatedAt": "2025-08-13T20:53:45.606Z",
+      "id": "GzDlL3KUgx0h9WFC",
+      "name": "WIP"
+    }
+  ]
+}
