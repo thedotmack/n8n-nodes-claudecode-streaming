@@ -139,6 +139,15 @@
                 "type": "string",
                 "operation": "equals"
               }
+            },
+            {
+              "id": "create-thread-check",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "create_thread",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "or"
@@ -151,8 +160,8 @@
         -300,
         0
       ],
-      "id": "compaction-router",
-      "name": "Compaction Router"
+      "id": "action-router",
+      "name": "Action Router"
     },
     {
       "parameters": {
@@ -170,13 +179,112 @@
     },
     {
       "parameters": {
+        "jsCode": "// Thread Creation Router - determines if this is compaction or thread creation\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  if (item.json.action === 'create_thread') {\n    // Route to thread creation\n    results.push({\n      json: {\n        ...item.json,\n        routeTo: 'create_thread'\n      }\n    });\n  } else if (item.json.action === 'trigger_compaction') {\n    // Route to compaction\n    results.push({\n      json: {\n        ...item.json,\n        routeTo: 'compaction'\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -100
+      ],
+      "id": "action-dispatcher",
+      "name": "Action Dispatcher",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "thread-creation-check",
+              "leftValue": "={{ $json.routeTo }}",
+              "rightValue": "create_thread",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        -100
+      ],
+      "id": "thread-creation-router",
+      "name": "Thread Creation Router"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "threadId": "={{ $json.threadId }}",
+        "prompt": "={{ $json.prompt }}",
+        "maxTurns": 86400,
+        "timeout": 86400,
+        "projectPath": "/home/node/docs-empire-markets",
+        "allowedTools": [
+          "WebFetch",
+          "TodoWrite",
+          "WebSearch",
+          "exit_plan_mode",
+          "Task",
+          "Read",
+          "MultiEdit",
+          "LS",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Write"
+        ],
+        "streamingOptions": {
+          "enableStreamingOutput": true
+        },
+        "threadManagement": {},
+        "additionalOptions": {}
+      },
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -300
+      ],
+      "id": "claude-create-thread",
+      "name": "Claude Code Create Thread",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Initialize thread context data after successful creation\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  // Get thread info from Claude Code response\n  const threadId = item.json.threadId;\n  const originalMessage = $('On Message Received').item.json;\n  const messageText = originalMessage.text || '';\n  \n  // Initialize context stats in static data\n  const staticData = $workflow.staticData || {};\n  staticData[`context_${threadId}`] = {\n    messageCount: 1,\n    totalCharacters: messageText.length,\n    lastCompaction: null,\n    memorySegments: [],\n    recentMessages: [{\n      text: messageText.substring(0, 200),\n      timestamp: new Date().toISOString(),\n      length: messageText.length\n    }],\n    createdAt: new Date().toISOString(),\n    lastUpdated: new Date().toISOString()\n  };\n  \n  results.push({\n    json: {\n      ...item.json,\n      threadInitialized: true,\n      contextInitialized: true\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -300
+      ],
+      "id": "initialize-thread-context",
+      "name": "Initialize Thread Context",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "jsCode": "// Compaction Status Blocks - load from external file\n// This code is loaded from compaction-status-blocks.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/compaction-status-blocks.js', 'utf8'));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        300,
-        -200
+        600,
+        -100
       ],
       "id": "status-blocks",
       "name": "Compaction Status Blocks",
@@ -452,18 +560,18 @@
       "main": [
         [
           {
-            "node": "Compaction Router",
+            "node": "Action Router",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Compaction Router": {
+    "Action Router": {
       "main": [
         [
           {
-            "node": "Auto-Compaction Manager",
+            "node": "Action Dispatcher",
             "type": "main",
             "index": 0
           }
@@ -471,6 +579,64 @@
         [
           {
             "node": "Claude Code Persistent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Dispatcher": {
+      "main": [
+        [
+          {
+            "node": "Thread Creation Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thread Creation Router": {
+      "main": [
+        [
+          {
+            "node": "Claude Code Create Thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Compaction Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Code Create Thread": {
+      "main": [
+        [
+          {
+            "node": "Initialize Thread Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collaborative Streaming Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Thread Context": {
+      "main": [
+        [
+          {
+            "node": "Send Final Response",
             "type": "main",
             "index": 0
           }
@@ -569,9 +735,9 @@
   "id": "PersistentCollaborativeWorkflow",
   "tags": ["persistent", "collaborative", "auto-compaction", "simplified"],
   "notes": {
-    "description": "Simplified persistent collaborative chat with intelligent auto-compaction. Features: single thread management, automatic context optimization, smart Block Kit status updates, and seamless human-AI collaboration.",
-    "nodeCount": 16,
-    "reductionFrom": "17 nodes (original dual-path system)",
+    "description": "Simplified persistent collaborative chat with intelligent auto-compaction and thread initialization. Features: single thread management, automatic context optimization, smart Block Kit status updates, and seamless human-AI collaboration.",
+    "nodeCount": 20,
+    "reductionFrom": "17 nodes (original dual-path system) + thread initialization",
     "keyFeatures": [
       "Single persistent thread per channel",
       "Automatic context monitoring and compaction", 

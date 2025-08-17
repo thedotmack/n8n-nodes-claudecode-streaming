@@ -22,6 +22,24 @@ function monitorContext() {
     // Create persistent thread ID based on channel
     const persistentThreadId = `collaborative_${channel}`;
     
+    // Check if thread exists in static data
+    const threadExists = checkThreadExists(persistentThreadId);
+    
+    if (!threadExists) {
+      // Thread doesn't exist - trigger creation
+      results.push({
+        json: {
+          action: 'create_thread',
+          threadId: persistentThreadId,
+          channel: channel,
+          prompt: `Starting collaborative chat for channel. User request: ${messageText}`,
+          messageText: messageText,
+          timestamp: new Date().toISOString()
+        }
+      });
+      continue;
+    }
+    
     // Get current context stats from static data
     const contextStats = getContextStats(persistentThreadId);
     
@@ -59,6 +77,17 @@ function monitorContext() {
   }
   
   return results;
+}
+
+/**
+ * Check if thread exists in workflow static data
+ */
+function checkThreadExists(threadId) {
+  const staticData = $workflow.staticData || {};
+  const threadData = staticData[`context_${threadId}`];
+  
+  // Thread exists if we have context data stored
+  return threadData && threadData.createdAt;
 }
 
 /**
