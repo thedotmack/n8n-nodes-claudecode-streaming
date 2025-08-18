@@ -21,7 +21,6 @@
     },
     {
       "parameters": {
-        "operation": "query",
         "prompt": "Analyze the entire codebase and generate comprehensive documentation:\\n\\n1. Project overview and architecture\\n2. API documentation with examples\\n3. Component/module documentation\\n4. Setup and installation guide\\n5. Configuration options\\n6. Troubleshooting guide\\n7. Code examples and best practices\\n\\nCheck for any undocumented code and create appropriate documentation. Update existing docs if they're outdated.",
         "model": "opus",
         "projectPath": "/path/to/your/project",
@@ -38,19 +37,22 @@
           "Task",
           "TodoWrite"
         ],
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true
+        },
         "additionalOptions": {
           "systemPrompt": "You are a technical writer creating clear, comprehensive documentation. Focus on clarity, completeness, and practical examples. Use markdown format and include code examples where helpful."
         }
       },
       "id": "generate-docs",
       "name": "Generate Documentation",
-      "type": "@holtweb/n8n-nodes-claudecode.claudeCode",
+      "type": "claudeCodeStreaming",
       "typeVersion": 1,
       "position": [450, 300]
     },
     {
       "parameters": {
-        "operation": "query",
         "prompt": "Create a visual architecture diagram for the project using Mermaid syntax. Include:\\n1. Main components and their relationships\\n2. Data flow\\n3. External dependencies\\n4. API structure\\n\\nSave the diagram in the docs folder.",
         "model": "sonnet",
         "projectPath": "/path/to/your/project",
@@ -61,11 +63,15 @@
           "Read",
           "Write",
           "Glob"
-        ]
+        ],
+        "streamingOptions": {
+          "enableStreaming": false,
+          "includeTimestamps": false
+        }
       },
       "id": "create-diagrams",
       "name": "Create Architecture Diagrams",
-      "type": "@holtweb/n8n-nodes-claudecode.claudeCode",
+      "type": "claudeCodeStreaming",
       "typeVersion": 1,
       "position": [650, 300]
     },

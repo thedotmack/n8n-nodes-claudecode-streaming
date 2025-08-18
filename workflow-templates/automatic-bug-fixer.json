@@ -15,7 +15,6 @@
     },
     {
       "parameters": {
-        "operation": "query",
         "prompt": "='Bug Report:\\n' + $json.body.issue.title + '\\n\\n' + $json.body.issue.body + '\\n\\nAnalyze this bug report and create a fix. Look through the codebase to understand the issue, then implement a solution. Include:\\n1. Root cause analysis\\n2. The fix implementation\\n3. Any necessary tests\\n4. Explanation of the changes'",
         "model": "opus",
         "projectPath": "/path/to/your/project",
@@ -31,11 +30,15 @@
           "Glob",
           "Bash",
           "Task"
-        ]
+        ],
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true
+        }
       },
       "id": "claude-analyzer",
       "name": "Analyze & Fix Bug",
-      "type": "@holtweb/n8n-nodes-claudecode.claudeCode",
+      "type": "claudeCodeStreaming",
       "typeVersion": 1,
       "position": [450, 300]
     },

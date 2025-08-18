@@ -16,7 +16,6 @@
     },
     {
       "parameters": {
-        "operation": "query",
         "prompt": "='Customer Support Ticket:\\n\\nTitle: ' + $json.body.title + '\\n\\nDescription: ' + $json.body.description + '\\n\\nSteps to Reproduce: ' + $json.body.steps_to_reproduce + '\\n\\nExpected Behavior: ' + $json.body.expected + '\\n\\nActual Behavior: ' + $json.body.actual + '\\n\\n' + 'Customer Email: ' + $json.body.customer_email + '\\n\\nPlease:\\n1. Analyze this issue and identify the root cause\\n2. Search the codebase for related code\\n3. Generate a fix for the problem\\n4. Create test cases to verify the fix\\n5. Provide a workaround the customer can use immediately'",
         "model": "opus",
         "projectPath": "/path/to/your/application",
@@ -34,19 +33,22 @@
           "Task",
           "TodoWrite"
         ],
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true
+        },
         "additionalOptions": {
           "systemPrompt": "You are a senior developer handling customer support issues. Focus on finding quick, reliable fixes while maintaining code quality. Always provide workarounds when possible."
         }
       },
       "id": "analyze-and-fix",
       "name": "Analyze & Fix Issue",
-      "type": "@holtweb/n8n-nodes-claudecode.claudeCode",
+      "type": "claudeCodeStreaming",
       "typeVersion": 1,
       "position": [450, 300]
     },
     {
       "parameters": {
-        "operation": "query",
         "prompt": "Run all tests related to the fix we just implemented. Make sure nothing is broken. If test passed then return 'PASSED' else return 'FAILED'",
         "model": "sonnet",
         "projectPath": "/path/to/your/application",
@@ -56,11 +58,15 @@
         "allowedTools": [
           "Bash",
           "Read"
-        ]
+        ],
+        "streamingOptions": {
+          "enableStreaming": false,
+          "includeTimestamps": false
+        }
       },
       "id": "run-tests",
       "name": "Run Tests",
-      "type": "@holtweb/n8n-nodes-claudecode.claudeCode",
+      "type": "claudeCodeStreaming",
       "typeVersion": 1,
       "position": [650, 300]
     },

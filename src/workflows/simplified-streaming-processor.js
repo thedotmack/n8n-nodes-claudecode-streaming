@@ -1,71 +1,51 @@
-// Simplified Streaming Processor for Persistent Chat
-// Handles both initial message posting and updates
+// Simplified Block Message Processor for Real-Time Streaming
+// Processes individual BlockMessage objects from the streaming output
 
-async function processSimplifiedStreaming() {
-  const streamingData = $input.all();
+async function processBlockMessageStreaming() {
+  const blockMessages = $input.all();
   
-  if (!streamingData || streamingData.length === 0) {
-    console.log('No streaming data received');
+  if (!blockMessages || blockMessages.length === 0) {
+    console.log('No block messages received');
     return [];
   }
 
   const results = [];
   
-  for (const item of streamingData) {
-    if (!item.json.streamingMessages) {
+  // Process each block message individually for real-time updates
+  for (const item of blockMessages) {
+    // Extract BlockMessage data from our simplified streaming node
+    const blockMessage = item.json;
+    
+    // Validate this is a BlockMessage
+    if (!blockMessage.type || !blockMessage.content || !blockMessage.timestamp) {
+      console.log('Invalid block message format, skipping:', blockMessage);
       continue;
     }
     
-    const {
-      threadId,
-      streamingMessages,
-      messageCount,
-      executionId
-    } = item.json;
-    
-    // Get original message context
-    const originalMessage = $('On Message Received').item.json;
+    // Get original message context (if available)
+    const originalMessage = $('On Message Received')?.item?.json || {};
     const channel = 'C09ANU1Q0QZ';
-    const event_ts = originalMessage.event_ts;
-    const prompt = originalMessage.text || '';
+    const event_ts = originalMessage.event_ts || new Date().toISOString();
+    const prompt = originalMessage.text || 'Claude Code Request';
     
-    // Track if we've posted initial message for this execution
-    let hasPostedInitial = false;
-    
-    // Process streaming messages for persistent collaborative chat
-    for (let i = 0; i < streamingMessages.length; i++) {
-      const streamingMessage = streamingMessages[i];
-      const isLastMessage = i === streamingMessages.length - 1;
-      const isFirstUpdate = i === 0;
+    // Determine if this should trigger a Slack update
+    if (shouldCreateSlackUpdate(blockMessage)) {
+      const slackPayload = createSlackBlockKit(
+        blockMessage,
+        originalMessage,
+        event_ts,
+        prompt
+      );
       
-      // Smart filtering for persistent chat (less frequent updates)
-      if (shouldCreateCollaborativeUpdate(streamingMessage, i, streamingMessages)) {
-        const blockKitPayload = createCollaborativeBlockKit(
-          streamingMessage,
-          streamingMessages.slice(0, i + 1),
-          threadId,
-          originalMessage,
-          isLastMessage,
-          isFirstUpdate && !hasPostedInitial
-        );
-        
-        // Determine if this is a post or update
-        const isPost = isFirstUpdate && !hasPostedInitial;
-        hasPostedInitial = true;
-        
-        results.push({
-          json: {
-            ...blockKitPayload,
-            messageIndex: i,
-            totalMessages: streamingMessages.length,
-            isLastMessage,
-            executionId,
-            updateType: getUpdateType(streamingMessage),
-            isPersistentChat: true,
-            slackOperation: isPost ? 'post' : 'update'
-          }
-        });
-      }
+      results.push({
+        json: {
+          ...slackPayload,
+          blockMessageType: blockMessage.type,
+          originalBlockMessage: blockMessage,
+          timestamp: blockMessage.timestamp,
+          isRealTimeUpdate: true
+        }
+      });
     }
   }
   
@@ -73,46 +53,38 @@ async function processSimplifiedStreaming() {
 }
 
 /**
- * Smart filtering for collaborative chat (reduce noise)
+ * Determine if BlockMessage should trigger Slack update
  */
-function shouldCreateCollaborativeUpdate(message, index, allMessages) {
-  // Always update on first and last messages
-  if (index === 0 || index === allMessages.length - 1) return true;
-  
-  // Update on important events
-  if (message.type === 'tool_use' || message.type === 'error') return true;
-  
-  // Less frequent updates for collaborative chat (every 8 messages instead of 5)
-  if (index % 8 === 0) return true;
-  
-  // Update if significant time gap (5+ seconds instead of 3)
-  if (index > 0) {
-    const currentTime = new Date(message.timestamp).getTime();
-    const lastTime = new Date(allMessages[index - 1].timestamp).getTime();
-    if (currentTime - lastTime > 5000) return true;
+function shouldCreateSlackUpdate(blockMessage) {
+  // Always update on important events
+  if (blockMessage.type === 'tool_use' || blockMessage.type === 'error' || blockMessage.type === 'status') {
+    return true;
   }
   
+  // Update for text blocks if they contain significant content
+  if (blockMessage.type === 'text' && blockMessage.content.length > 50) {
+    return true;
+  }
+  
+  // Skip very short text updates to reduce noise
   return false;
 }
 
 /**
- * Create Block Kit for collaborative persistent chat
+ * Create Slack Block Kit for individual BlockMessage
  */
-function createCollaborativeBlockKit(currentMessage, allMessages, threadId, originalMessage, isLastMessage, isInitialPost) {
+function createSlackBlockKit(blockMessage, originalMessage, event_ts, prompt) {
   const channel = 'C09ANU1Q0QZ';
-  const event_ts = originalMessage.event_ts;
-  const prompt = originalMessage.text || '';
   
-  const status = isLastMessage ? 'completed' : 'working';
-  const statusIcon = isLastMessage ? '✅' : '⚡';
-  const statusText = isLastMessage ? 'Response completed' : 'Claude Code working...';
+  // Determine status based on block message type
+  const statusInfo = getStatusInfo(blockMessage);
   
   const blocks = [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": `${statusIcon} *${statusText}*`
+        "text": `${statusInfo.icon} *${statusInfo.text}*`
       }
     },
     {
@@ -124,7 +96,7 @@ function createCollaborativeBlockKit(currentMessage, allMessages, threadId, orig
         },
         {
           "type": "mrkdwn",
-          "text": `*Chat Type:*\\nPersistent Collaborative`
+          "text": `*Type:*\\nReal-time Block Streaming`
         }
       ]
     },
@@ -135,37 +107,33 @@ function createCollaborativeBlockKit(currentMessage, allMessages, threadId, orig
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": `*Status:*\\n${currentMessage.message}`
+        "text": `*${blockMessage.type.toUpperCase()}:*\\n${blockMessage.content.substring(0, 500)}${blockMessage.content.length > 500 ? '...' : ''}`
       }
     }
   ];
 
-  // Add tool usage if present
-  const toolMessages = allMessages.filter(msg => msg.type === 'tool_use');
-  if (toolMessages.length > 0) {
-    const recentTools = toolMessages.slice(-2);
-    const toolSummary = recentTools.map(msg => `• ${msg.message}`).join('\\n');
+  // Add metadata if present
+  if (blockMessage.metadata && Object.keys(blockMessage.metadata).length > 0) {
+    const metadataText = Object.entries(blockMessage.metadata)
+      .map(([key, value]) => `*${key}:* ${value}`)
+      .join('\\n');
     
     blocks.push({
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": `*Tools Used:*\\n${toolSummary}${toolMessages.length > 2 ? `\\n_...and ${toolMessages.length - 2} more_` : ''}`
+        "text": `*Details:*\\n${metadataText}`
       }
     });
   }
 
-  // Add progress context
-  const progressText = isLastMessage ? 
-    `✅ Collaborative response completed (${allMessages.length} updates)` :
-    `⚡ ${allMessages.length} updates • Collaborating...`;
-
+  // Add timestamp context
   blocks.push({
     "type": "context",
     "elements": [
       {
         "type": "mrkdwn",
-        "text": progressText
+        "text": `🕒 ${blockMessage.timestamp} • Block: ${blockMessage.type}`
       }
     ]
   });
@@ -173,23 +141,33 @@ function createCollaborativeBlockKit(currentMessage, allMessages, threadId, orig
   return {
     channel: channel,
     thread_ts: event_ts,
-    messageType: isInitialPost ? 'initial' : 'update',
+    messageType: 'update',
     blocks: JSON.stringify(blocks),
-    text: `${statusIcon} ${statusText}: ${currentMessage.message}`,
-    currentMessage: currentMessage,
-    allStreamingMessages: allMessages,
-    threadId: threadId,
-    timestamp: new Date().toISOString()
+    text: `${statusInfo.icon} ${statusInfo.text}: ${blockMessage.content.substring(0, 100)}`,
+    blockMessage: blockMessage,
+    timestamp: blockMessage.timestamp
   };
 }
 
-function getUpdateType(message) {
-  if (message.type === 'start') return 'start';
-  if (message.type === 'completion') return 'completion';
-  if (message.type === 'error') return 'error';
-  if (message.type === 'tool_use') return 'tool_use';
-  return 'progress';
+/**
+ * Get status information for BlockMessage type
+ */
+function getStatusInfo(blockMessage) {
+  switch (blockMessage.type) {
+    case 'text':
+      return { icon: '💬', text: 'Claude Response' };
+    case 'tool_use':
+      return { icon: '🔧', text: 'Using Tool' };
+    case 'status':
+      return { icon: '✅', text: 'Status Update' };
+    case 'error':
+      return { icon: '❌', text: 'Error' };
+    case 'code':
+      return { icon: '💻', text: 'Code Output' };
+    default:
+      return { icon: '⚡', text: 'Claude Working' };
+  }
 }
 
 // Execute the main function
-return processSimplifiedStreaming();
+return processBlockMessageStreaming();

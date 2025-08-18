@@ -1,6 +1,6 @@
 # 🚀 Claude Code n8n Workflow Templates
 
-Ready-to-use workflow templates that showcase the power of Claude Code in n8n automation.
+Ready-to-use workflow templates that showcase the power of Claude Code streaming in n8n automation with real-time block message updates.
 
 ## 📦 Available Templates
 
@@ -68,12 +68,25 @@ Ready-to-use workflow templates that showcase the power of Claude Code in n8n au
    "projectPath": "/path/to/your/project"  // Update this!
    ```
 
-2. **Webhook URLs**: Each webhook needs a unique path
+2. **Node Type**: All templates use the simplified streaming node
+   ```javascript
+   "type": "claudeCodeStreaming"  // Correct node type
+   ```
+
+3. **Streaming Options**: Configure real-time block message streaming
+   ```javascript
+   "streamingOptions": {
+     "enableStreaming": true,
+     "includeTimestamps": true
+   }
+   ```
+
+4. **Webhook URLs**: Each webhook needs a unique path
    ```javascript
    "path": "webhook/your-unique-path"
    ```
 
-3. **External Services**:
+5. **External Services**:
    - GitHub: Repository owner and name
    - Slack: Channel names and authentication
    - Email: SMTP settings or service credentials
@@ -112,6 +125,69 @@ Limit tools for safety:
 "allowedTools": ["Read", "Grep"]  // Read-only access
 ```
 
+### 5. Configure Block Message Streaming
+Enable real-time updates:
+```javascript
+"streamingOptions": {
+  "enableStreaming": true,     // Enable streaming to second output
+  "includeTimestamps": true    // Include timestamps in block messages
+}
+```
+
+### 6. Use Dual Outputs
+Connect both outputs for complete workflow:
+- **Output 1 (Main)**: Final results and structured data
+- **Output 2 (Streaming)**: Real-time block messages for live updates
+
+## 🔄 **Block Message Streaming Examples**
+
+### Basic Streaming Setup
+```json
+{
+  "type": "claudeCodeStreaming",
+  "parameters": {
+    "prompt": "Analyze this codebase and fix any issues",
+    "streamingOptions": {
+      "enableStreaming": true,
+      "includeTimestamps": true
+    }
+  }
+}
+```
+
+### Connecting Streaming Output
+Connect the **second output** to process real-time block messages:
+```
+Claude Code Streaming → (Output 2) → Slack/Webhook → Real-time Updates
+                    → (Output 1) → Final Processing → Results
+```
+
+### Block Message Format
+Streaming output sends individual BlockMessage objects:
+```json
+{
+  "type": "text|tool_use|status|error",
+  "content": "Message content",
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "metadata": {
+    "tool_name": "Read",
+    "messageId": "msg_123"
+  }
+}
+```
+
+### Processing Block Messages
+Use the simplified streaming processor:
+```javascript
+// Process each block message for real-time updates
+const blockMessage = $input.first().json;
+if (blockMessage.type === 'tool_use') {
+  // Send tool usage update to Slack
+} else if (blockMessage.type === 'status') {
+  // Send completion status
+}
+```
+
 ## 📝 Creating Your Own Templates
 
 ### Template Structure
@@ -127,10 +203,12 @@ Limit tools for safety:
 
 ### Best Practices
 1. **Clear Naming**: Use descriptive node names
-2. **Error Handling**: Add IF nodes for error cases
-3. **Notifications**: Always notify on completion/failure
-4. **Documentation**: Add sticky notes explaining complex logic
-5. **Testing**: Include test data in pinData for easy testing
+2. **Dual Outputs**: Always connect both main and streaming outputs
+3. **Block Processing**: Use streaming output for real-time updates
+4. **Error Handling**: Add IF nodes for error cases
+5. **Notifications**: Always notify on completion/failure
+6. **Documentation**: Add sticky notes explaining complex logic
+7. **Testing**: Include test data in pinData for easy testing
 
 ## 🚨 Common Issues & Solutions
 
