@@ -4,26 +4,24 @@ You are an expert n8n node developer with deep knowledge of TypeScript, n8n comm
 
 You are working on **n8n-nodes-claudecode-streaming** during its active development phase.
 
-n8n-nodes-claudecode-streaming is an n8n community node package that integrates Claude Code SDK with real-time streaming capabilities. It enables n8n workflows to leverage Claude's AI coding assistance through persistent conversation threads, dual-output streaming, and MCP (Model Context Protocol) support for enhanced automation workflows.
+n8n-nodes-claudecode-streaming is an n8n community node package that integrates Claude Code SDK with real-time block message streaming. It enables n8n workflows to leverage Claude's AI coding assistance through the SDK's built-in conversation persistence and structured block message streaming for enhanced automation workflows.
 
 ## IMPORTANT
 
 **ALWAYS use Bun** - This project uses Bun as the primary package manager and runtime.
 
-## 🗄️ **THREAD PERSISTENCE PROTOCOL**
+## 🎯 **SIMPLIFIED ARCHITECTURE PRINCIPLES**
 
-**MANDATORY FOR ALL THREAD OPERATIONS**
+**CORE DESIGN PHILOSOPHY**
 
-1. **ALWAYS verify thread storage** before modifying conversation state
-2. **ALWAYS validate threadId format** - Use `claude_thread_${uuid}` pattern
-3. **ALWAYS update thread metadata** when modifying individual threads
-4. **Storage locations**:
-   - Individual threads: `claude_thread_${threadId}` in workflow static data
-   - Thread list: `claude_threads_list` in workflow static data
-5. **Verify persistence**: Check `this.getWorkflowStaticData('global')` contents
-6. **Get permission**: "Thread storage verified. Proceeding with conversation operation."
+1. **Use SDK's built-in conversation persistence** - No custom thread management
+2. **Real-time block message streaming** - Process messages as they arrive
+3. **Single conversation thread** - Leverage `continue: true` for continuity
+4. **Structured block messages** - Consistent format for all streaming outputs
+5. **Dual output design** - Main results + streaming blocks
+6. **KISS, DRY, YAGNI principles** - Keep it simple and focused
 
-**NO EXCEPTIONS** - Thread operations without proper persistence validation are FORBIDDEN.
+**NO CUSTOM THREAD STORAGE** - Let Claude Code SDK handle conversation persistence.
 
 ## 🚧 **DEVELOPMENT PHASE CONTEXT**
 
@@ -36,14 +34,13 @@ n8n-nodes-claudecode-streaming is an n8n community node package that integrates 
 **Direct SDK calls without error handling** - Always wrap in NodeOperationError
 **Blocking operations in streaming** - Use async/await properly with timeouts
 **Missing dual output structure** - Always return `INodeExecutionData[][]` format
-**Thread ID collisions** - Use proper UUID generation for thread IDs
+**Custom thread management** - Use SDK's built-in conversation persistence
 **Memory leaks in streaming** - Clean up resources and handle aborts
-**Hardcoded rate limits** - Use configurable buffer intervals
-**Missing MCP context** - Include thread context in all operations
-**Static data corruption** - Validate before writing to workflow static data
+**Buffering block messages** - Send immediately for real-time streaming
+**Missing block message structure** - Use consistent BlockMessage interface
 **npm commands** - Use `bun run` for all operations, not `npm run`
 **Synchronous streaming** - All streaming operations must be async
-**Missing threadId in streams** - Include threadId in all streaming messages
+**Complex thread storage** - Let SDK handle conversation continuity
 **Ignoring n8n expressions** - Support `{{$json.fieldName}}` in parameters
 **Direct state mutations** - Use proper n8n data flow patterns
 **Missing fallback handling** - Always provide graceful degradation
@@ -84,36 +81,36 @@ npm publish             # Publish to npm registry
 
 ## 🏗️ **ARCHITECTURE PATTERNS**
 
-**Node Operations (4 Core Types):**
-- `newThread` - Create new conversation threads
-- `continueThread` - Continue specific threads by ID  
-- `continueLast` - Resume most recent conversation
-- `listThreads` - List all thread metadata
+**Single Operation Node:**
+- Single execution operation that continues conversation automatically
+- SDK handles conversation persistence via `continue: true`
+- No complex thread management or custom storage
+- Focus on core streaming functionality
 
 **Dual Output System:**
-- Output 1 (Main): Final results and structured responses
-- Output 2 (Streaming): Real-time updates for Slack/webhook routing
+- Output 1 (Main): Final results with metadata and conversation summary
+- Output 2 (Streaming): Real-time structured block messages as they arrive
 
 **File Structure:**
-- Main node: `nodes/ClaudeCode/ClaudeCodeStreaming.node.ts`
-- Utilities: `src/utilities/` (streaming, memory, Slack helpers)
-- Workflows: `src/workflows/` (auto-compaction, monitoring)
-- Templates: `workflow-templates/` (ready-to-use examples)
-- Docs: `docs/` (implementation guides)
+- Main node: `nodes/ClaudeCode/ClaudeCodeStreaming.node.ts` (simplified)
+- Workflow templates: `workflow-templates/` (ready-to-use examples)
+- Documentation: `docs/` (implementation guides)
+- Plans: `_PLANS/` (research and implementation documentation)
 
-## 🔄 **STREAMING IMPLEMENTATION RULES**
+## 🔄 **BLOCK MESSAGE STREAMING RULES**
 
-- Buffer messages with configurable intervals (default 2000ms)
-- Include threadId in all streaming messages for tracking
-- Support both webhook delivery and n8n output routing
+- Process each SDK message immediately as it arrives
+- Create structured block messages for different content types
+- Send block messages to streaming output in real-time
+- Support text, tool_use, status, and error block types
+- Include timestamps and metadata for tracking
 - Handle aborts and timeouts gracefully with proper cleanup
-- Use async/await pattern for all streaming operations
-- Validate stream targets before sending messages
 
 ## 📦 **N8N INTEGRATION PATTERNS**
 
 - Return format: `INodeExecutionData[][]` for dual outputs
-- Persistence: `this.getWorkflowStaticData('global')` for thread storage
+- Persistence: Claude Code SDK handles conversation continuity
 - Error handling: `NodeOperationError` for user-friendly messages
 - Expression support: `{{$json.fieldName}}` in node parameters
 - TypeScript target: ES2019 for n8n compatibility
+- Block message interface: Structured format with index signature
