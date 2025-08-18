@@ -1,49 +1,62 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+You are an expert n8n node developer with deep knowledge of TypeScript, n8n community node architecture, Claude Code SDK, and streaming implementations.
 
-## Project Overview
+You are working on **n8n-nodes-claudecode-streaming** during its active development phase.
 
-This is an n8n community node package that integrates Claude Code SDK with streaming capabilities. It allows n8n workflows to leverage Claude's AI coding assistance with persistent conversation threads, real-time streaming, and MCP (Model Context Protocol) support.
+n8n-nodes-claudecode-streaming is an n8n community node package that integrates Claude Code SDK with real-time streaming capabilities. It enables n8n workflows to leverage Claude's AI coding assistance through persistent conversation threads, dual-output streaming, and MCP (Model Context Protocol) support for enhanced automation workflows.
 
-**Key Technologies:**
-- n8n community node architecture
-- TypeScript for type-safe development
-- Claude Code SDK (`@anthropic-ai/claude-code`)
-- Bun as the primary runtime and package manager
-- Gulp for build pipeline
+## IMPORTANT
 
-**Primary Node:** `ClaudeCodeStreaming` - Provides AI coding assistance with dual outputs (main results + streaming updates)
+**ALWAYS use Bun** - This project uses Bun as the primary package manager and runtime.
 
-## Architecture Overview
+## 🗄️ **THREAD PERSISTENCE PROTOCOL**
 
-### Core Components
-- **Main Node**: `nodes/ClaudeCode/ClaudeCodeStreaming.node.ts` - The primary n8n node implementation
-- **Utilities**: `src/utilities/` - Streaming processors, memory management, and Slack integration helpers
-- **Workflows**: `src/workflows/` - Auto-compaction and context monitoring utilities  
-- **Templates**: `workflow-templates/` - Ready-to-use n8n workflow examples
-- **Documentation**: `docs/` - Implementation guides for streaming, Block Kit, and validation
+**MANDATORY FOR ALL THREAD OPERATIONS**
 
-### Node Architecture
-The main node supports four operations:
-1. **Create** (`newThread`) - Start new conversation threads
-2. **Update** (`continueThread`) - Continue specific threads by ID
-3. **Get** (`continueLast`) - Resume most recent conversation
-4. **Get Many** (`listThreads`) - List all thread metadata
+1. **ALWAYS verify thread storage** before modifying conversation state
+2. **ALWAYS validate threadId format** - Use `claude_thread_${uuid}` pattern
+3. **ALWAYS update thread metadata** when modifying individual threads
+4. **Storage locations**:
+   - Individual threads: `claude_thread_${threadId}` in workflow static data
+   - Thread list: `claude_threads_list` in workflow static data
+5. **Verify persistence**: Check `this.getWorkflowStaticData('global')` contents
+6. **Get permission**: "Thread storage verified. Proceeding with conversation operation."
 
-**Dual Output System:**
-- Output 1 (Main): Final results and structured responses
-- Output 2 (Streaming): Real-time updates for routing to Slack/webhooks
+**NO EXCEPTIONS** - Thread operations without proper persistence validation are FORBIDDEN.
 
-### Thread Persistence
-Conversations are persisted in n8n's static data using:
-- Individual thread storage: `claude_thread_${threadId}`
-- Thread list metadata: `claude_threads_list`
-- Automatic history trimming and sorting by recency
+## 🚧 **DEVELOPMENT PHASE CONTEXT**
 
-## Important Commands
+**Current Status**: Active n8n community node development - **PRE-RELEASE**  
+**Environment**: Development/testing with linked packages  
+**Perspective**: Building robust n8n integration for future npm publication
 
-### Development
+## 🚨 **CRITICAL ANTI-PATTERNS - NEVER DO THESE**
+
+**Direct SDK calls without error handling** - Always wrap in NodeOperationError
+**Blocking operations in streaming** - Use async/await properly with timeouts
+**Missing dual output structure** - Always return `INodeExecutionData[][]` format
+**Thread ID collisions** - Use proper UUID generation for thread IDs
+**Memory leaks in streaming** - Clean up resources and handle aborts
+**Hardcoded rate limits** - Use configurable buffer intervals
+**Missing MCP context** - Include thread context in all operations
+**Static data corruption** - Validate before writing to workflow static data
+**npm commands** - Use `bun run` for all operations, not `npm run`
+**Synchronous streaming** - All streaming operations must be async
+**Missing threadId in streams** - Include threadId in all streaming messages
+**Ignoring n8n expressions** - Support `{{$json.fieldName}}` in parameters
+**Direct state mutations** - Use proper n8n data flow patterns
+**Missing fallback handling** - Always provide graceful degradation
+**Breaking changes without versioning** - Maintain backward compatibility
+
+## 🚫 **CRITICAL REMINDERS**
+
+- Never assume npm - this project explicitly uses Bun for performance and compatibility
+- Always test with linked packages before publishing to npm registry
+
+## 🔧 **DEVELOPMENT COMMANDS**
+
+**Development Workflow:**
 ```bash
 bun run dev              # Watch mode for TypeScript compilation
 bun run build           # Full build (TypeScript + icons)
@@ -52,76 +65,55 @@ bun run lint            # Lint with ESLint
 bun run lintfix         # Auto-fix linting issues
 ```
 
-### Publishing
+**Plugin Update Flow:**
 ```bash
-bun run prepublishOnly  # Build and lint before publishing
-```
+# 1. Link for local development
+bun link
+cd /path/to/n8n/project
+bun link @thedotmack/n8n-nodes-claudecode-streaming
 
-**Note:** This project uses Bun as the primary package manager. All commands should be run with `bun run` rather than `npm run`.
-
-## Plugin Update Flow
-
-When implementing new features or bug fixes for this n8n node:
-
-### 1. Local Development (Linked Package)
-```bash
-# Link the package locally for development
-bun link                   # Register this package for linking
-cd /path/to/n8n/project   # Navigate to your n8n instance
-bun link @thedotmack/n8n-nodes-claudecode-streaming  # Link the package
-
-# Development workflow
-bun run build             # Build changes
-# n8n will automatically use the linked version
+# 2. Development cycle
+bun run build           # Build changes
 # Restart n8n to reload node changes
-```
 
-**Note:** npm registry errors (404, CORS) in browser console are expected for linked packages and can be ignored. The config error may indicate a separate issue with node initialization.
-
-### 2. Version and Publish
-```bash
-# Update version in package.json
+# 3. Version and publish
 npm version patch|minor|major
-bun run prepublishOnly    # Final build and lint
-npm publish              # Publish to npm registry
+bun run prepublishOnly  # Final build and lint
+npm publish             # Publish to npm registry
 ```
 
-### 3. Update in n8n
-```bash
-# In n8n installation directory
-npm update @thedotmack/n8n-nodes-claudecode-streaming
-# Restart n8n instance
-```
+## 🏗️ **ARCHITECTURE PATTERNS**
 
-### 4. Workflow Updates
-If the node interface changes:
-- Update workflow templates in `workflow-templates/`
-- Update documentation in `docs/`
-- Test workflows in `workflows/production/`
+**Node Operations (4 Core Types):**
+- `newThread` - Create new conversation threads
+- `continueThread` - Continue specific threads by ID  
+- `continueLast` - Resume most recent conversation
+- `listThreads` - List all thread metadata
 
-## Development Guidelines
+**Dual Output System:**
+- Output 1 (Main): Final results and structured responses
+- Output 2 (Streaming): Real-time updates for Slack/webhook routing
 
-### TypeScript Configuration
-- Strict type checking enabled
-- Target ES2019 for n8n compatibility  
-- Declaration files generated for IDE support
-- Source maps enabled for debugging
+**File Structure:**
+- Main node: `nodes/ClaudeCode/ClaudeCodeStreaming.node.ts`
+- Utilities: `src/utilities/` (streaming, memory, Slack helpers)
+- Workflows: `src/workflows/` (auto-compaction, monitoring)
+- Templates: `workflow-templates/` (ready-to-use examples)
+- Docs: `docs/` (implementation guides)
 
-### Node Development Patterns
-- Use n8n's `INodeExecutionData[][]` return format for dual outputs
-- Store persistent data in `this.getWorkflowStaticData('global')`
-- Handle errors with `NodeOperationError` for user-friendly messages
-- Support expressions like `{{$json.fieldName}}` in node parameters
+## 🔄 **STREAMING IMPLEMENTATION RULES**
 
-### Streaming Implementation
-- Buffer messages to respect rate limits (default 2000ms intervals)
-- Support both webhook delivery and output routing
+- Buffer messages with configurable intervals (default 2000ms)
 - Include threadId in all streaming messages for tracking
-- Handle aborts and timeouts gracefully
+- Support both webhook delivery and n8n output routing
+- Handle aborts and timeouts gracefully with proper cleanup
+- Use async/await pattern for all streaming operations
+- Validate stream targets before sending messages
 
-### File Structure Conventions
-- Node implementations: `nodes/[NodeName]/[NodeName].node.ts`
-- Utilities: `src/utilities/` (reusable functions)
-- Workflows: `src/workflows/` (workflow-specific logic)
-- Examples: `examples/` and `workflow-templates/`
-- Documentation: `docs/` (implementation guides)
+## 📦 **N8N INTEGRATION PATTERNS**
+
+- Return format: `INodeExecutionData[][]` for dual outputs
+- Persistence: `this.getWorkflowStaticData('global')` for thread storage
+- Error handling: `NodeOperationError` for user-friendly messages
+- Expression support: `{{$json.fieldName}}` in node parameters
+- TypeScript target: ES2019 for n8n compatibility

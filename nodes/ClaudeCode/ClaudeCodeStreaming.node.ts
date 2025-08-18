@@ -8,12 +8,11 @@ import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 import { query, type SDKMessage } from '@anthropic-ai/claude-code';
 import * as crypto from 'crypto';
 
-// Interface for thread persistence
-interface ThreadData {
-	threadId: string;
-	createdAt: string;
-	lastMessageAt: string;
-	messageHistory: SDKMessage[];
+// Interface for structured block messages
+interface BlockMessage {
+	type: 'text' | 'code' | 'tool_use' | 'tool_result' | 'error' | 'status';
+	content: string;
+	timestamp: string;
 	metadata?: Record<string, any>;
 }
 
@@ -24,9 +23,9 @@ export class ClaudeCodeStreaming implements INodeType {
 		icon: 'file:claudecode.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["operation"] + ": " + ($parameter["threadId"] || $parameter["prompt"])}}',
+		subtitle: '={{$parameter["prompt"]}}',
 		description:
-			'AI coding assistant with persistent conversation threads and dual-output streaming. Features thread management, real-time updates, and flexible routing.',
+			'AI coding assistant with streaming block messages. Features single conversation thread with structured message output for real-time updates.',
 		defaults: {
 			name: 'Claude Code Streaming',
 		},
@@ -37,78 +36,11 @@ export class ClaudeCodeStreaming implements INodeType {
 		],
 		properties: [
 			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Create',
-						value: 'newThread',
-						description: 'Create a new conversation thread with automatic or custom thread ID',
-						action: 'Create new conversation thread',
-					},
-					{
-						name: 'Update',
-						value: 'continueThread',
-						description: 'Update a specific conversation using its thread ID (preserves full context)',
-						action: 'Update specific conversation thread by ID',
-					},
-					{
-						name: 'Get',
-						value: 'continueLast',
-						description: 'Retrieve the most recently active conversation thread',
-						action: 'Get the most recent conversation',
-					},
-					{
-						name: 'Get Many',
-						value: 'listThreads',
-						description: 'Retrieve all conversation threads with metadata and timestamps',
-						action: 'Get all available conversation threads',
-					},
-				],
-				default: 'newThread',
-			},
-			{
-				displayName: 'Thread ID',
-				name: 'threadId',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['continueThread'],
-					},
-				},
-				default: '',
-				description: 'The unique thread ID from a previous conversation (found in output or "List Threads")',
-				required: true,
-				placeholder: 'e.g., "thread_abc123xyz" or {{$json.threadId}}',
-				hint: 'Use the threadId from previous Claude Code outputs or List Threads operation',
-			},
-			{
-				displayName: 'Custom Thread ID',
-				name: 'customThreadId',
-				type: 'string',
-				displayOptions: {
-					show: {
-						operation: ['newThread'],
-					},
-				},
-				default: '',
-				description: 'Optional custom thread ID for easy identification. Auto-generated if empty.',
-				placeholder: 'e.g., "user_123_support" or {{$json.userId}}_session',
-				hint: 'Use meaningful names like user IDs or session identifiers for easy thread management',
-			},
-			{
 				displayName: 'Prompt',
 				name: 'prompt',
 				type: 'string',
 				typeOptions: {
 					rows: 4,
-				},
-				displayOptions: {
-					hide: {
-						operation: ['listThreads'],
-					},
 				},
 				default: '',
 				description: 'The prompt or instruction to send to Claude Code',
@@ -234,96 +166,18 @@ export class ClaudeCodeStreaming implements INodeType {
 				default: {},
 				options: [
 					{
-						displayName: 'Enable Streaming Output',
-						name: 'enableStreamingOutput',
-						type: 'boolean',
-						default: false,
-						description: 'Whether to output streaming messages through the second output branch for routing',
-					},
-					{
-						displayName: 'Enable Direct Webhook',
+						displayName: 'Enable Block Message Streaming',
 						name: 'enableStreaming',
 						type: 'boolean',
-						default: false,
-						description: 'Whether to send real-time updates directly to Slack webhook (legacy mode)',
-					},
-					{
-						displayName: 'Webhook URL',
-						name: 'webhookUrl',
-						type: 'string',
-						default: '',
-						description: 'Slack webhook URL to send streaming updates to',
-						placeholder: 'e.g., https://hooks.slack.com/services/...',
-					},
-					{
-						displayName: 'Thread Timestamp',
-						name: 'threadTimestamp',
-						type: 'string',
-						default: '',
-						description: 'Slack thread timestamp to reply to (optional)',
-					},
-					{
-						displayName: 'Stream Format',
-						name: 'streamFormat',
-						type: 'options',
-						options: [
-							{
-								name: 'Status Updates',
-								value: 'status',
-								description: 'Send status updates about tool usage and progress',
-							},
-							{
-								name: 'Full Messages',
-								value: 'full',
-								description: 'Send complete messages as they are received',
-							},
-							{
-								name: 'Message Chunks',
-								value: 'chunks',
-								description: 'Send raw message chunks for real-time streaming',
-							},
-						],
-						default: 'status',
-						description: 'Choose what type of updates to stream to Slack',
-					},
-					{
-						displayName: 'Batch Interval (ms)',
-						name: 'batchInterval',
-						type: 'number',
-						default: 2000,
-						description: 'Minimum time between webhook calls to avoid rate limits',
-					},
-				],
-			},
-			{
-				displayName: 'Thread Management',
-				name: 'threadManagement',
-				type: 'collection',
-				placeholder: 'Add Thread Option',
-				default: {},
-				description: 'Configure conversation persistence and thread management',
-				options: [
-					{
-						displayName: 'Thread Metadata',
-						name: 'threadMetadata',
-						type: 'json',
-						default: '{}',
-						description: 'Store custom data with the thread (e.g., user info, context)',
-						placeholder: '{"userId": "123", "department": "support", "priority": "high"}',
-					},
-					{
-						displayName: 'Max Thread History',
-						name: 'maxThreadHistory',
-						type: 'number',
-						default: 50,
-						description: 'Maximum number of messages to keep in thread history (older messages are removed)',
+						default: true,
+						description: 'Whether to output structured block messages through the streaming output',
 					},
 					{
 						displayName: 'Include Timestamps',
 						name: 'includeTimestamps',
 						type: 'boolean',
 						default: true,
-						description: 'Whether to include timestamps in thread data outputs',
+						description: 'Whether to include timestamps in block messages',
 					},
 				],
 			},
@@ -370,25 +224,10 @@ export class ClaudeCodeStreaming implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const streamingData: INodeExecutionData[] = [];
-		const staticData = this.getWorkflowStaticData('global');
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			let timeout = 300; // Default timeout
 			try {
-				const operation = this.getNodeParameter('operation', itemIndex) as string;
-				
-				// Handle list threads operation
-				if (operation === 'listThreads') {
-					const threads = (staticData['claude_threads_list'] as any[]) || [];
-					returnData.push({
-						json: {
-							threads,
-							threadCount: threads.length,
-						},
-						pairedItem: itemIndex,
-					});
-					continue;
-				}
 				const prompt = this.getNodeParameter('prompt', itemIndex) as string;
 				const model = this.getNodeParameter('model', itemIndex) as string;
 				const maxTurns = this.getNodeParameter('maxTurns', itemIndex) as number;
@@ -398,16 +237,7 @@ export class ClaudeCodeStreaming implements INodeType {
 				const simplify = this.getNodeParameter('simplify', itemIndex, false) as boolean;
 				const allowedTools = this.getNodeParameter('allowedTools', itemIndex, []) as string[];
 				const streamingOptions = this.getNodeParameter('streamingOptions', itemIndex) as {
-					enableStreamingOutput?: boolean;
 					enableStreaming?: boolean;
-					webhookUrl?: string;
-					threadTimestamp?: string;
-					streamFormat?: string;
-					batchInterval?: number;
-				};
-				const threadManagement = this.getNodeParameter('threadManagement', itemIndex) as {
-					threadMetadata?: string;
-					maxThreadHistory?: number;
 					includeTimestamps?: boolean;
 				};
 				const additionalOptions = this.getNodeParameter('additionalOptions', itemIndex) as {
@@ -415,79 +245,6 @@ export class ClaudeCodeStreaming implements INodeType {
 					requirePermissions?: boolean;
 					debug?: boolean;
 				};
-
-				// Parse thread metadata if provided
-				let threadMetadata: Record<string, any> = {};
-				if (threadManagement.threadMetadata) {
-					try {
-						threadMetadata = JSON.parse(threadManagement.threadMetadata);
-					} catch (e) {
-						console.warn('Failed to parse thread metadata:', e);
-					}
-				}
-
-				// Determine thread ID and load existing thread data
-				let threadId: string;
-				let threadData: ThreadData | null = null;
-				let isNewThread = false;
-
-				if (operation === 'newThread') {
-					const customThreadId = this.getNodeParameter('customThreadId', itemIndex, '') as string;
-					// Generate thread ID inline
-					if (customThreadId) {
-						threadId = customThreadId;
-						// Check if custom thread ID already exists
-						if (staticData[`claude_thread_${customThreadId}`]) {
-							throw new NodeOperationError(
-								this.getNode(),
-								`Thread with ID "${customThreadId}" already exists. Use "Continue Thread" operation instead.`,
-								{ itemIndex }
-							);
-						}
-					} else {
-						// Generate unique thread ID
-						const timestamp = Date.now();
-						const random = crypto.randomBytes(8).toString('hex');
-						threadId = `thread_${timestamp}_${random}`;
-					}
-					isNewThread = true;
-				} else if (operation === 'continueThread') {
-					threadId = this.getNodeParameter('threadId', itemIndex) as string;
-					threadData = (staticData[`claude_thread_${threadId}`] as ThreadData) || null;
-					
-					if (!threadData) {
-						throw new NodeOperationError(
-							this.getNode(),
-							`Thread with ID "${threadId}" not found. Available threads can be listed using "List Threads" operation.`,
-							{ itemIndex }
-						);
-					}
-				} else if (operation === 'continueLast') {
-					const threadsList = (staticData['claude_threads_list'] as any[]) || [];
-					if (threadsList.length === 0) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'No previous conversation found. Start a new thread first.',
-							{ itemIndex }
-						);
-					}
-					const mostRecent = threadsList[0];
-					threadData = (staticData[`claude_thread_${mostRecent.threadId}`] as ThreadData) || null;
-					if (!threadData) {
-						throw new NodeOperationError(
-							this.getNode(),
-							'Thread data corrupted. Please use a specific thread ID.',
-							{ itemIndex }
-						);
-					}
-					threadId = threadData.threadId;
-				} else {
-					// Default to new thread for backward compatibility
-					const timestamp = Date.now();
-					const random = crypto.randomBytes(8).toString('hex');
-					threadId = `thread_${timestamp}_${random}`;
-					isNewThread = true;
-				}
 
 				// Create abort controller for timeout
 				const abortController = new AbortController();
@@ -501,19 +258,9 @@ export class ClaudeCodeStreaming implements INodeType {
 					});
 				}
 
-				// Validate streaming options
-				if (streamingOptions.enableStreaming && !streamingOptions.webhookUrl) {
-					throw new NodeOperationError(this.getNode(), 'Webhook URL is required when streaming is enabled', {
-						itemIndex,
-					});
-				}
-
 				// Log start
 				if (additionalOptions.debug) {
 					console.log(`[ClaudeCodeStreaming] Starting execution for item ${itemIndex}`);
-					console.log(`[ClaudeCodeStreaming] Operation: ${operation}`);
-					console.log(`[ClaudeCodeStreaming] Thread ID: ${threadId}`);
-					console.log(`[ClaudeCodeStreaming] Is new thread: ${isNewThread}`);
 					console.log(`[ClaudeCodeStreaming] Prompt: ${prompt.substring(0, 100)}...`);
 					console.log(`[ClaudeCodeStreaming] Model: ${model}`);
 					console.log(`[ClaudeCodeStreaming] Max turns: ${maxTurns}`);
@@ -522,7 +269,7 @@ export class ClaudeCodeStreaming implements INodeType {
 					console.log(`[ClaudeCodeStreaming] Streaming enabled: ${streamingOptions.enableStreaming}`);
 				}
 
-				// Build query options
+				// Build query options - simplified for single thread operation
 				interface QueryOptions {
 					prompt: string;
 					abortController: AbortController;
@@ -531,10 +278,9 @@ export class ClaudeCodeStreaming implements INodeType {
 						permissionMode: 'default' | 'bypassPermissions';
 						model: string;
 						systemPrompt?: string;
-						mcpServers?: Record<string, any>;
 						allowedTools?: string[];
-						continue?: boolean;
 						cwd?: string;
+						continue?: boolean;
 					};
 				}
 
@@ -545,6 +291,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						maxTurns,
 						permissionMode: additionalOptions.requirePermissions ? 'default' : 'bypassPermissions',
 						model,
+						continue: true, // Always continue conversation thread
 					},
 				};
 
@@ -569,16 +316,18 @@ export class ClaudeCodeStreaming implements INodeType {
 					}
 				}
 
-				// Add continue flag for existing threads
-				if (!isNewThread && threadData) {
-					queryOptions.options.continue = true;
-				}
-
-				// Initialize streaming variables
-				let lastStreamTime = 0;
-				const batchInterval = streamingOptions.batchInterval || 2000;
-				let messageBuffer: string[] = [];
-				const streamingOutputMessages: any[] = [];
+				// Initialize block message streaming
+				const blockMessages: BlockMessage[] = [];
+				
+				// Helper function to convert SDK messages to block messages
+				const createBlockMessage = (type: BlockMessage['type'], content: string, metadata?: Record<string, any>): BlockMessage => {
+					return {
+						type,
+						content,
+						timestamp: streamingOptions.includeTimestamps !== false ? new Date().toISOString() : '',
+						metadata: metadata || {},
+					};
+				};
 
 				// Helper function to collect and/or send streaming update
 				const handleStreamingUpdate = async (message: string, messageType: string = 'info', force = false) => {
