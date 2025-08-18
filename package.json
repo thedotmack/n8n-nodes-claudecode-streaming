@@ -1,6 +1,6 @@
 {
   "name": "@thedotmack/n8n-nodes-claudecode-streaming",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "n8n node for Claude Code SDK integration with MCP support and Slack streaming",
   "keywords": [
     "n8n-community-node-package",
