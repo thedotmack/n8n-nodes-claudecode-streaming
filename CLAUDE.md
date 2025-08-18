@@ -8,7 +8,9 @@ n8n-nodes-claudecode-streaming is an n8n community node package that integrates 
 
 ## IMPORTANT
 
-**ALWAYS use Bun** - This project uses Bun as the primary package manager and runtime.
+**Never OVERENGINEER** The simplest solution is the BEST solution.
+
+**Our definition of SIMPLE** means coming up with elegant solutions for complex problems. SIMPLE does not mean "less features" or "different functionality" it means figuring out the clearest path to logical completion without extra cruft. 
 
 ## 🎯 **SIMPLIFIED ARCHITECTURE PRINCIPLES**
 

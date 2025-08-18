@@ -179,7 +179,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						name: 'webhookUrl',
 						type: 'string',
 						default: '',
-						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming',
+						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming.',
 						placeholder: 'https://your-n8n-instance/webhook/claude-streaming',
 					},
 					{
@@ -189,6 +189,109 @@ export class ClaudeCodeStreaming implements INodeType {
 						default: '',
 						description: 'Channel or conversation identifier for context (e.g., slack-C1234567890)',
 						placeholder: 'slack-C1234567890',
+					},
+				],
+			},
+			{
+				displayName: 'MCP Configuration',
+				name: 'mcpConfiguration',
+				type: 'collection',
+				placeholder: 'Add MCP Option',
+				default: {},
+				options: [
+					{
+						displayName: 'Enable MCP',
+						name: 'enableMCP',
+						type: 'boolean',
+						default: true,
+						description: 'Whether to enable Model Context Protocol (MCP) server integration. When enabled without explicit configuration, uses system default MCP servers.',
+					},
+					{
+						displayName: 'Config File Path',
+						name: 'mcpConfigPath',
+						type: 'string',
+						default: '',
+						description: 'Path to MCP configuration file (JSON or YAML). Example: ./mcp-config.JSON.',
+						placeholder: 'e.g., /path/to/mcp-config.json',
+						displayOptions: {
+							show: {
+								enableMCP: [true],
+							},
+						},
+					},
+					{
+						displayName: 'MCP Servers',
+						name: 'mcpServers',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Individual MCP server configurations',
+						displayOptions: {
+							show: {
+								enableMCP: [true],
+							},
+						},
+						options: [
+							{
+								displayName: 'Server',
+								name: 'server',
+								values: [
+									{
+										displayName: 'Server Name',
+										name: 'name',
+										type: 'string',
+										default: '',
+										description: 'Name identifier for the MCP server',
+										placeholder: 'e.g., n8n-mcp',
+									},
+									{
+										displayName: 'Command',
+										name: 'command',
+										type: 'string',
+										default: '',
+										description: 'Command to start the MCP server',
+										placeholder: 'e.g., npx @n8n-mcp/server',
+									},
+									{
+										displayName: 'Arguments',
+										name: 'args',
+										type: 'string',
+										typeOptions: {
+											rows: 2,
+										},
+										default: '',
+										description: 'Command line arguments (JSON array format)',
+										placeholder: 'e.g., ["--api-key", "your-key", "--url", "https://n8n.example.com"]',
+									},
+									{
+										displayName: 'Permission',
+										name: 'permission',
+										type: 'options',
+										options: [
+											{
+												name: 'Allow All',
+												value: 'whitelist',
+												description: 'Allow all tools from this server',
+											},
+											{
+												name: 'Ask Each Time',
+												value: 'ask',
+												description: 'Prompt for permission on each tool use',
+											},
+											{
+												name: 'Deny All',
+												value: 'blacklist',
+												description: 'Block all tools from this server',
+											},
+										],
+										default: 'ask',
+										description: 'Permission level for this MCP server',
+									},
+								],
+							},
+						],
 					},
 				],
 			},
@@ -256,6 +359,18 @@ export class ClaudeCodeStreaming implements INodeType {
 					requirePermissions?: boolean;
 					debug?: boolean;
 				};
+				const mcpConfiguration = this.getNodeParameter('mcpConfiguration', itemIndex) as {
+					enableMCP?: boolean;
+					mcpConfigPath?: string;
+					mcpServers?: {
+						server: Array<{
+							name: string;
+							command: string;
+							args: string;
+							permission: 'whitelist' | 'ask' | 'blacklist';
+						}>;
+					};
+				};
 
 				// Create abort controller for timeout
 				const abortController = new AbortController();
@@ -269,6 +384,41 @@ export class ClaudeCodeStreaming implements INodeType {
 					});
 				}
 
+				// Validate MCP configuration
+				if (mcpConfiguration.enableMCP) {
+					// Only validate if explicit configuration is provided
+					if (mcpConfiguration.mcpConfigPath || mcpConfiguration.mcpServers?.server?.length) {
+						if (mcpConfiguration.mcpConfigPath && mcpConfiguration.mcpServers?.server?.length) {
+							throw new NodeOperationError(this.getNode(), 'Cannot specify both MCP config file path and inline MCP servers. Choose one option.', {
+								itemIndex,
+							});
+						}
+					}
+					// If no explicit configuration is provided, SDK will use system default MCP servers
+
+					// Validate inline MCP server configurations
+					if (mcpConfiguration.mcpServers?.server) {
+						for (const server of mcpConfiguration.mcpServers.server) {
+							if (!server.name || !server.command) {
+								throw new NodeOperationError(this.getNode(), 'MCP server configuration requires both name and command fields', {
+									itemIndex,
+								});
+							}
+							
+							// Validate JSON format for args if provided
+							if (server.args && server.args.trim()) {
+								try {
+									JSON.parse(server.args);
+								} catch (error) {
+									throw new NodeOperationError(this.getNode(), `Invalid JSON format in MCP server "${server.name}" arguments: ${server.args}`, {
+										itemIndex,
+									});
+								}
+							}
+						}
+					}
+				}
+
 				// Debug logging
 				if (additionalOptions.debug) {
 					console.log(`[ClaudeCodeStreaming] Starting execution for item ${itemIndex}`);
@@ -276,6 +426,19 @@ export class ClaudeCodeStreaming implements INodeType {
 					console.log(`[ClaudeCodeStreaming] Model: ${model}`);
 					console.log(`[ClaudeCodeStreaming] Streaming enabled: ${streamingOptions.enableStreaming}`);
 					console.log(`[ClaudeCodeStreaming] Webhook URL: ${streamingOptions.webhookUrl || 'Not configured'}`);
+					console.log(`[ClaudeCodeStreaming] MCP enabled: ${mcpConfiguration.enableMCP}`);
+					if (mcpConfiguration.enableMCP) {
+						if (mcpConfiguration.mcpConfigPath) {
+							console.log(`[ClaudeCodeStreaming] MCP config file: ${mcpConfiguration.mcpConfigPath}`);
+						} else if (mcpConfiguration.mcpServers?.server?.length) {
+							console.log(`[ClaudeCodeStreaming] MCP servers configured: ${mcpConfiguration.mcpServers.server.length}`);
+							mcpConfiguration.mcpServers.server.forEach((server, index) => {
+								console.log(`[ClaudeCodeStreaming] MCP Server ${index + 1}: ${server.name} (${server.command}) - Permission: ${server.permission}`);
+							});
+						} else {
+							console.log(`[ClaudeCodeStreaming] MCP using system default configuration`);
+						}
+					}
 				}
 
 				// Get original message context for real-time streaming
@@ -291,6 +454,43 @@ export class ClaudeCodeStreaming implements INodeType {
 					};
 				};
 
+				// Process MCP configuration
+				let mcpOptions: any = {};
+				if (mcpConfiguration.enableMCP) {
+					// External config file takes precedence
+					if (mcpConfiguration.mcpConfigPath && mcpConfiguration.mcpConfigPath.trim()) {
+						mcpOptions.configFile = mcpConfiguration.mcpConfigPath.trim();
+					}
+					// Use inline MCP server configurations if provided
+					else if (mcpConfiguration.mcpServers?.server?.length) {
+						const mcpServers: Record<string, any> = {};
+						const mcpServerPermissions: Record<string, string> = {};
+						
+						for (const server of mcpConfiguration.mcpServers.server) {
+							// Parse arguments JSON array
+							let parsedArgs: string[] = [];
+							if (server.args && server.args.trim()) {
+								parsedArgs = JSON.parse(server.args);
+							}
+							
+							// Configure MCP server
+							mcpServers[server.name] = {
+								command: server.command,
+								...(parsedArgs.length > 0 && { args: parsedArgs }),
+							};
+							
+							// Set server permissions
+							mcpServerPermissions[server.name] = server.permission;
+						}
+						
+						mcpOptions.mcpServers = mcpServers;
+						mcpOptions.mcpServerPermissions = mcpServerPermissions;
+					}
+					// If no explicit MCP configuration is provided, the SDK will automatically
+					// load MCP servers from the system default configuration (e.g., ~/.claude/mcp_servers.json)
+					// This allows the node to work with whatever MCP servers are already configured
+				}
+
 				// Build query options - using SDK's built-in conversation persistence
 				const queryOptions = {
 					prompt,
@@ -303,6 +503,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						...(additionalOptions.systemPrompt && { systemPrompt: additionalOptions.systemPrompt }),
 						...(projectPath && projectPath.trim() && { cwd: projectPath.trim() }),
 						...(allowedTools.length > 0 && { allowedTools }),
+						...mcpOptions, // Include MCP configuration
 					},
 				};
 
