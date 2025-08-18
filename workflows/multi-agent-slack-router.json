@@ -1,0 +1,63 @@
+{
+  "name": "Multi-Agent Slack Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-multi-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f8b2e0a1-4c5d-6e7f-8901-23456789abcd",
+      "name": "Slack Events Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "webhookId": "slack-multi-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Channel to Agent Mapping Configuration\nconst channelAgentMapping = {\n  // Example mappings - replace with actual channel IDs\n  'C1234567890': 'empire-ceo-agent',\n  'C1234567891': 'empire-product-hunter-agent',\n  'C1234567892': 'empire-store-builder-agent',\n  'C1234567893': 'empire-ad-manager-agent',\n  'C1234567894': 'empire-creative-director-agent',\n  'C1234567895': 'empire-data-analyst-agent',\n  'C1234567896': 'empire-supply-chain-agent'\n};\n\n// Agent folder path mapping\nconst agentPaths = {\n  'empire-ceo-agent': '/home/node/empire-ceo-agent',\n  'empire-product-hunter-agent': '/home/node/empire-product-hunter-agent',\n  'empire-store-builder-agent': '/home/node/empire-store-builder-agent',\n  'empire-ad-manager-agent': '/home/node/empire-ad-manager-agent',\n  'empire-creative-director-agent': '/home/node/empire-creative-director-agent',\n  'empire-data-analyst-agent': '/home/node/empire-data-analyst-agent',\n  'empire-supply-chain-agent': '/home/node/empire-supply-chain-agent'\n};\n\nconst slackEvent = $input.first().json;\n\n// Handle Slack URL verification challenge\nif (slackEvent.challenge) {\n  return [{\n    json: { challenge: slackEvent.challenge },\n    pairedItem: { item: 0 }\n  }];\n}\n\n// Skip bot messages and non-message events\nif (!slackEvent.event || \n    slackEvent.event.type !== 'message' || \n    slackEvent.event.bot_id || \n    slackEvent.event.subtype) {\n  return [];\n}\n\nconst channelId = slackEvent.event.channel;\nconst agentName = channelAgentMapping[channelId];\n\nif (!agentName) {\n  console.log(`No agent mapped for channel: ${channelId}`);\n  return [{\n    json: {\n      error: 'No agent configured for this channel',\n      channelId: channelId,\n      timestamp: new Date().toISOString()\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nconst agentPath = agentPaths[agentName];\n\nreturn [{\n  json: {\n    // Original Slack event data\n    slackEvent: slackEvent,\n    \n    // Routing information\n    channelId: channelId,\n    agentName: agentName,\n    agentPath: agentPath,\n    \n    // Message details\n    message: slackEvent.event.text,\n    userId: slackEvent.event.user,\n    timestamp: slackEvent.event.ts,\n    \n    // For conversation persistence\n    conversationId: `slack-${channelId}`,\n    \n    // Processing metadata\n    receivedAt: new Date().toISOString()\n  },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "g9c3f1b2-5d6e-7f80-9012-3456789abcde",
+      "name": "Route to Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst input = $input.first().json;\nconst { agentPath, agentName } = input;\n\nif (!agentPath || !agentName) {\n  throw new Error('Missing agent path or name');\n}\n\ntry {\n  // Read the CLAUDE.md file for the agent\n  const claudeMdPath = path.join(agentPath, 'CLAUDE.md');\n  \n  if (!fs.existsSync(claudeMdPath)) {\n    throw new Error(`CLAUDE.md not found at: ${claudeMdPath}`);\n  }\n  \n  const personalityContent = fs.readFileSync(claudeMdPath, 'utf8');\n  \n  // Create enhanced context with personality\n  const enhancedContext = `${personalityContent}\\n\\n---\\n\\nUser Message: ${input.message}`;\n  \n  return [{\n    json: {\n      ...input,\n      personalityContent: personalityContent,\n      enhancedContext: enhancedContext,\n      claudeMdPath: claudeMdPath,\n      personalityLoaded: true,\n      loadedAt: new Date().toISOString()\n    },\n    pairedItem: { item: 0 }\n  }];\n  \n} catch (error) {\n  console.error(`Error loading personality for ${agentName}:`, error.message);\n  \n  return [{\n    json: {\n      ...input,\n      personalityContent: '',\n      enhancedContext: input.message, // Fallback to just the message\n      personalityLoaded: false,\n      loadError: error.message,\n      loadedAt: new Date().toISOString()\n    },\n    pairedItem: { item: 0 }\n  }];\n}"
+      },
+      "id": "h0d4g2c3-6e7f-8091-0123-456789abcdef",
+      "name": "Load Agent Personality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "context": "={{$json.enhancedContext}}",
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true,
+          "webhookUrl": "https://n8n.empire.markets/webhook/claude-streaming"
+        },
+        "conversationOptions": {
+          "continue": true,
+          "conversationId": "={{$json.conversationId}}"
+        }
+      },
+      "id": "i1e5h3d4-7f80-9102-1234-56789abcdef0",
+      "name": "Claude Code with Agent Personality",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputs = $input.all();\n\n// Process both outputs from Claude Code node\nconst mainOutput = inputs[0]?.json || {};\nconst streamingOutput = inputs[1]?.json || {};\n\n// Get original routing context\nconst routingData = $node['Load Agent Personality'].json;\nconst { channelId, agentName, slackEvent } = routingData;\n\n// Prepare Slack response\nconst slackResponse = {\n  channel: channelId,\n  text: mainOutput.result || mainOutput.response || 'Response completed',\n  thread_ts: slackEvent.event.thread_ts || slackEvent.event.ts,\n  \n  // Add agent identification\n  blocks: [\n    {\n      type: \"section\",\n      text: {\n        type: \"mrkdwn\",\n        text: mainOutput.result || mainOutput.response || 'Response completed'\n      }\n    },\n    {\n      type: \"context\",\n      elements: [\n        {\n          type: \"mrkdwn\",\n          text: `🤖 *${agentName}* • ${new Date().toLocaleTimeString()}`\n        }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    // Response data\n    slackResponse: slackResponse,\n    \n    // Routing metadata\n    channelId: channelId,\n    agentName: agentName,\n    \n    // Results\n    claudeResult: mainOutput,\n    streamingData: streamingOutput,\n    \n    // Processing metadata\n    processedAt: new Date().toISOString(),\n    conversationId: routingData.conversationId\n  },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "j2f6i4e5-8091-0123-2345-6789abcdef01",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",\n      "typeVersion": 2,\n      "position": [1000, 300]\n    },\n    {\n      "parameters": {\n        "authentication": "oAuth2Api",\n        "resource": "message",\n        "operation": "post",\n        "channel": "={{$json.channelId}}",\n        "text": "={{$json.slackResponse.text}}",\n        "otherOptions": {\n          "thread_ts": "={{$json.slackResponse.thread_ts}}",\n          "blocks": "={{$json.slackResponse.blocks}}"\n        }\n      },\n      "id": "k3g7j5f6-9102-1234-3456-789abcdef012",\n      "name": "Send to Slack",\n      "type": "n8n-nodes-base.slack",\n      "typeVersion": 2,\n      "position": [1200, 300]\n    },\n    {\n      "parameters": {\n        "respondWith": "text",\n        "responseBody": "OK"\n      },\n      "id": "l4h8k6g7-0123-2345-4567-89abcdef0123",\n      "name": "Webhook Response",\n      "type": "n8n-nodes-base.respondToWebhook",\n      "typeVersion": 1,\n      "position": [1400, 300]\n    },\n    {\n      "parameters": {\n        "jsCode": "// Error handling for routing failures\nconst error = $input.first().json;\n\nconst errorResponse = {\n  channel: error.channelId || 'general',\n  text: `❌ Agent routing error: ${error.error || 'Unknown error'}`,\n  blocks: [\n    {\n      type: \"section\",\n      text: {\n        type: \"mrkdwn\",\n        text: `❌ *Agent Routing Error*\\n${error.error || 'Unknown error'}`\n      }\n    },\n    {\n      type: \"context\",\n      elements: [\n        {\n          type: \"mrkdwn\",\n          text: `Channel: ${error.channelId || 'unknown'} • ${new Date().toLocaleTimeString()}`\n        }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    slackResponse: errorResponse,\n    channelId: error.channelId,\n    error: error,\n    timestamp: new Date().toISOString()\n  },\n  pairedItem: { item: 0 }\n}];"\n      },\n      "id": "m5i9l7h8-1234-3456-5678-9abcdef01234",\n      "name": "Handle Routing Error",\n      "type": "n8n-nodes-base.code",\n      "typeVersion": 2,\n      "position": [600, 500]\n    },\n    {\n      "parameters": {\n        "authentication": "oAuth2Api",\n        "resource": "message",\n        "operation": "post",\n        "channel": "={{$json.channelId}}",\n        "text": "={{$json.slackResponse.text}}",\n        "otherOptions": {\n          "blocks": "={{$json.slackResponse.blocks}}"\n        }\n      },\n      "id": "n6j0m8i9-2345-4567-6789-abcdef012345",\n      "name": "Send Error to Slack",\n      "type": "n8n-nodes-base.slack",\n      "typeVersion": 2,\n      "position": [800, 500]\n    }\n  ],\n  "connections": {\n    "Slack Events Webhook": {\n      "main": [\n        [\n          {\n            "node": "Route to Agent",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Route to Agent": {\n      "main": [\n        [\n          {\n            "node": "Load Agent Personality",\n            "type": "main",\n            "index": 0\n          },\n          {\n            "node": "Handle Routing Error",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Load Agent Personality": {\n      "main": [\n        [\n          {\n            "node": "Claude Code with Agent Personality",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Claude Code with Agent Personality": {\n      "main": [\n        [\n          {\n            "node": "Format Response",\n            "type": "main",\n            "index": 0\n          }\n        ],\n        []\n      ]\n    },\n    "Format Response": {\n      "main": [\n        [\n          {\n            "node": "Send to Slack",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Send to Slack": {\n      "main": [\n        [\n          {\n            "node": "Webhook Response",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Handle Routing Error": {\n      "main": [\n        [\n          {\n            "node": "Send Error to Slack",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "Send Error to Slack": {\n      "main": [\n        [\n          {\n            "node": "Webhook Response",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    }\n  },\n  "pinData": {},\n  "settings": {\n    "executionOrder": "v1"\n  },\n  "staticData": {},\n  "tags": [],\n  "triggerCount": 0,\n  "updatedAt": "2025-01-15T00:00:00.000Z",\n  "versionId": "1"\n}

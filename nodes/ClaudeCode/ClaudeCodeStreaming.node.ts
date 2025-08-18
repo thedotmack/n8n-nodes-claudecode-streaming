@@ -182,6 +182,14 @@ export class ClaudeCodeStreaming implements INodeType {
 						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming',
 						placeholder: 'https://your-n8n-instance/webhook/claude-streaming',
 					},
+					{
+						displayName: 'Channel Context',
+						name: 'channelContext',
+						type: 'string',
+						default: '',
+						description: 'Channel or conversation identifier for context (e.g., slack-C1234567890)',
+						placeholder: 'slack-C1234567890',
+					},
 				],
 			},
 			{
