@@ -175,6 +175,77 @@ Extend Claude Code with specialized capabilities:
 }
 ```
 
+## 🎣 Claude Code Hooks Integration
+
+**NEW**: The Claude Code Streaming node now supports Claude Code hooks for advanced workflow customization and security controls.
+
+### What are Claude Code Hooks?
+
+Claude Code hooks allow you to intercept and customize Claude's behavior at key execution points:
+
+- **PreToolUse**: Validate/block tools before execution (security, compliance)
+- **PostToolUse**: Process results after tool completion (formatting, logging) 
+- **UserPromptSubmit**: Filter/enhance prompts before processing
+- **Stop**: Control when Claude can finish execution
+
+### Example: Security Validation
+
+```javascript
+// n8n Node Configuration
+{
+  "prompt": "Help me deploy this application",
+  "projectPath": "/path/to/project",
+  "hooksConfiguration": {
+    "enableHooks": true,
+    "hookEvents": {
+      "preToolUse": [{
+        "matcher": "Bash",
+        "command": "python ./hooks/security-validator.py",
+        "description": "Block dangerous commands"
+      }]
+    },
+    "hooksOutputMode": "streaming"
+  }
+}
+```
+
+```python
+# hooks/security-validator.py
+import json, sys
+input_data = json.load(sys.stdin)
+
+if "rm -rf" in input_data.get("tool_input", {}).get("command", ""):
+    print("Security violation: Dangerous command blocked", file=sys.stderr)
+    sys.exit(2)  # Block the operation
+
+print("Security check passed")
+sys.exit(0)  # Allow the operation
+```
+
+### Real-Time Hook Events
+
+When hooks are enabled, you'll see real-time events in the streaming output:
+
+```json
+{
+  "type": "status",
+  "content": "Pre-tool hook triggered for: Bash", 
+  "metadata": {
+    "hookType": "PreToolUse",
+    "toolName": "Bash",
+    "hooksEnabled": true
+  }
+}
+```
+
+### Complete Example
+
+See the [hooks example](./examples/hooks-example/) for a complete implementation with:
+- Security validation (blocking dangerous commands)
+- Auto-formatting (code cleanup after writing)
+- Prompt validation (filtering sensitive content)
+- Execution control (managing stop behavior)
+
 With MCP configuration (`.mcp.json`):
 ```json
 {

@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ./hooks/security-validator.py",
+            "description": "Security validation for dangerous operations"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ./hooks/auto-formatter.py",
+            "description": "Auto-format code files after writing"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ./hooks/prompt-validator.py",
+            "description": "Validate prompts for sensitive content"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ./hooks/stop-controller.py",
+            "description": "Control stop behavior"
+          }
+        ]
+      }
+    ]
+  }
+}
