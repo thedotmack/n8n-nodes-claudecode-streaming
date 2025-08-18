@@ -16,6 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The node appears in n8n UI under "Claude Code" category
 - Debug output available when Debug option is enabled in node parameters
 
+### Plugin Update Flow
+When making changes to the n8n node implementation:
+```bash
+bun run build && bun link @thedotmack/n8n-nodes-claudecode-streaming && cd ~/.n8n/nodes/ && bun link @thedotmack/n8n-nodes-claudecode-streaming
+```
+This builds the project, creates a local package link, and links it to n8n's node directory for testing.
+
 ## Architecture Overview
 
 This is an n8n community node that integrates Claude Code SDK with streaming capabilities and thread management. The architecture consists of:
