@@ -1,12 +1,12 @@
-# 🚀 Claude Code for n8n
+# n8n-nodes-claudecode-streaming
 
-**Bring the power of Claude Code directly into your n8n automation workflows!**
+**Claude Code SDK integration with real-time block message streaming for n8n**
 
-Imagine having an AI coding assistant that can analyze your codebase, fix bugs, write new features, manage databases, interact with APIs, and automate your entire development workflow - all within n8n. That's exactly what this node enables.
+An n8n community node package that integrates Claude Code SDK with **real-time streaming updates**. See Claude working in real-time through structured block messages with immediate Slack notifications, tool usage tracking, and live progress updates during long operations.
 
 [![n8n](https://img.shields.io/badge/n8n-community_node-orange.svg)](https://n8n.io/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Powered-blue.svg)](https://claude.ai/code)
-[![npm](https://img.shields.io/npm/v/@holtweb/n8n-nodes-claudecode.svg)](https://www.npmjs.com/package/@holtweb/n8n-nodes-claudecode)
+[![npm](https://img.shields.io/npm/v/@thedotmack/n8n-nodes-claudecode-streaming.svg)](https://www.npmjs.com/package/@thedotmack/n8n-nodes-claudecode-streaming)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
 
 ## 🌟 What Can You Build?

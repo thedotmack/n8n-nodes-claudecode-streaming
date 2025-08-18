@@ -1,5 +1,4 @@
 {
-  "name": "Persistent Collaborative Chat with Auto-Compaction",
   "nodes": [
     {
       "parameters": {
@@ -22,12 +21,12 @@
           ]
         }
       },
-      "id": "slack-trigger",
+      "id": "c588f14c-a052-4425-8497-98362a273fa2",
       "name": "On Message Received",
       "type": "n8n-nodes-base.slackTrigger",
       "position": [
-        -1200,
-        0
+        -1040,
+        80
       ],
       "webhookId": "8ff651f2-5030-47a5-a8d6-ed44a0fc89f6",
       "typeVersion": 1,
@@ -49,16 +48,16 @@
           },
           "conditions": [
             {
-              "id": "file-share-filter",
-              "leftValue": "={{ $json.subtype }}",
-              "rightValue": "file_share",
+              "id": "no-subtype-filter",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "message",
               "operator": {
                 "type": "string",
                 "operation": "equals"
               }
             },
             {
-              "id": "no-subtype-filter",
+              "id": "683877a8-a9ac-49a4-8711-da0a68fbf691",
               "leftValue": "={{ $json.subtype }}",
               "rightValue": "",
               "operator": {
@@ -68,17 +67,17 @@
               }
             }
           ],
-          "combinator": "or"
+          "combinator": "and"
         },
         "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -900,
-        0
+        -816,
+        80
       ],
-      "id": "noise-filter",
+      "id": "42a69e27-b4ca-4290-aed0-990abf3416b9",
       "name": "Filter Noise"
     },
     {
@@ -96,11 +95,12 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        -900,
-        200
+        -592,
+        -16
       ],
-      "id": "acknowledge-reaction",
+      "id": "0154daca-6bd9-4efd-8b8f-2409a642edff",
       "name": "Add Reaction",
+      "webhookId": "22a8cd41-11da-44d2-9def-df860d21db94",
       "credentials": {
         "slackApi": {
           "id": "Gz8fbHHn1c1YObO6",
@@ -110,117 +110,20 @@
     },
     {
       "parameters": {
-        "jsCode": "// Context Monitor - load from external file\n// This code is loaded from context-monitor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/context-monitor.js', 'utf8'));"
+        "jsCode": "// Simple Message Processing - no complex thread management needed\n// SDK handles conversation persistence automatically\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const originalMessage = $('On Message Received').item.json;\n  const messageText = originalMessage.text || '';\n  \n  // Simple processing - just pass the message to Claude Code\n  results.push({\n    json: {\n      action: 'normal_processing',\n      prompt: messageText,\n      channel: 'C09ANU1Q0QZ',\n      event_ts: originalMessage.event_ts || originalMessage.ts,\n      messageText: messageText,\n      timestamp: new Date().toISOString()\n    }\n  });\n}\n\nreturn results;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -600,
-        0
+        -592,
+        176
       ],
-      "id": "context-monitor",
-      "name": "Context Monitor",
+      "id": "bbbf1c66-5114-4925-aefd-1ed1cf807512",
+      "name": "Simple Message Processor",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "dataType": "string",
-        "value1": "={{ $json.action }}",
-        "rules": {
-          "rules": [
-            {
-              "value2": "create_thread",
-              "output": 0
-            },
-            {
-              "value2": "trigger_compaction",
-              "output": 1
-            },
-            {
-              "value2": "normal_processing",
-              "output": 2
-            }
-          ]
-        },
-        "options": {
-          "fallbackOutput": 2
-        }
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [
-        -300,
-        0
-      ],
-      "id": "action-switch",
-      "name": "Action Switch"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Auto-Compaction Manager - load from external file\n// This code is loaded from auto-compaction-manager.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/auto-compaction-manager.js', 'utf8'));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        0,
-        -200
-      ],
-      "id": "compaction-manager",
-      "name": "Auto-Compaction Manager",
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Compaction Status Blocks - load from external file\n// This code is loaded from compaction-status-blocks.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/compaction-status-blocks.js', 'utf8'));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        300,
-        -200
-      ],
-      "id": "status-blocks",
-      "name": "Compaction Status Blocks",
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "post",
-        "select": "channel",
-        "channelId": {
-          "__rl": true,
-          "value": "C09ANU1Q0QZ",
-          "mode": "list",
-          "cachedResultName": "tom-docs"
-        },
-        "messageType": "block",
-        "blocksUi": "={{ $json.blocks }}",
-        "text": "={{ $json.text }}",
-        "otherOptions": {
-          "includeLinkToWorkflow": false
-        }
-      },
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.3,
-      "position": [
-        600,
-        -200
-      ],
-      "id": "compaction-status-message",
-      "name": "Send Compaction Status",
-      "onError": "continueRegularOutput",
-      "credentials": {
-        "slackApi": {
-          "id": "Gz8fbHHn1c1YObO6",
-          "name": "Slack account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "create",
-        "threadId": "={{ $json.threadId }}",
         "prompt": "={{ $json.prompt }}",
         "maxTurns": 86400,
         "timeout": 86400,
@@ -237,74 +140,24 @@
           "Grep",
           "Glob",
           "Edit",
-          "Write"
+          "Write",
+          "Bash"
         ],
         "streamingOptions": {
-          "enableStreamingOutput": true
+          "enableStreaming": true,
+          "includeTimestamps": true,
+          "webhookUrl": "https://n8n.empire.markets/webhook/claude-streaming"
         },
-        "threadManagement": {},
         "additionalOptions": {}
       },
       "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [
-        0,
-        -100
+        -368,
+        176
       ],
-      "id": "claude-create-thread",
-      "name": "Claude Code Create Thread",
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Mark thread as created after successful creation\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  // Mark thread as created in static data\n  const staticData = $workflow.staticData || {};\n  staticData.thread_created = true;\n  staticData.thread_id = 'tom-docs';\n  staticData.created_at = new Date().toISOString();\n  \n  // Initialize context stats for the thread\n  const originalMessage = $('On Message Received').item.json;\n  const messageText = originalMessage.text || '';\n  \n  staticData['context_tom-docs'] = {\n    messageCount: 1,\n    totalCharacters: messageText.length,\n    lastCompaction: null,\n    memorySegments: [],\n    recentMessages: [{\n      text: messageText.substring(0, 200),\n      timestamp: new Date().toISOString(),\n      length: messageText.length\n    }],\n    createdAt: new Date().toISOString(),\n    lastUpdated: new Date().toISOString()\n  };\n  \n  results.push({\n    json: {\n      ...item.json,\n      threadInitialized: true\n    }\n  });\n}\n\nreturn results;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        300,
-        -100
-      ],
-      "id": "initialize-thread",
-      "name": "Initialize Thread",
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "operation": "continueThread",
-        "threadId": "={{ $json.threadId }}",
-        "prompt": "={{ $json.prompt }}",
-        "maxTurns": 86400,
-        "timeout": 86400,
-        "projectPath": "/home/node/docs-empire-markets",
-        "allowedTools": [
-          "WebFetch",
-          "TodoWrite",
-          "WebSearch",
-          "exit_plan_mode",
-          "Task",
-          "Read",
-          "MultiEdit",
-          "LS",
-          "Grep",
-          "Glob",
-          "Edit",
-          "Write"
-        ],
-        "streamingOptions": {
-          "enableStreamingOutput": true
-        },
-        "threadManagement": {},
-        "additionalOptions": {}
-      },
-      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
-      "typeVersion": 1,
-      "position": [
-        0,
-        200
-      ],
-      "id": "claude-persistent",
-      "name": "Claude Code Persistent",
+      "id": "3aa03f98-f1a0-4d8a-87f8-dfaed7e62d9c",
+      "name": "Claude Code Streaming",
       "onError": "continueRegularOutput"
     },
     {
@@ -314,17 +167,15 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        300,
-        200
+        -144,
+        80
       ],
-      "id": "collaborative-streaming",
+      "id": "54635fab-d76b-4520-bb5a-3cefac23c33c",
       "name": "Simplified Streaming Processor",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "post",
         "select": "channel",
         "channelId": {
           "__rl": true,
@@ -339,8 +190,7 @@
           "includeLinkToWorkflow": false,
           "thread_ts": {
             "replyValues": {
-              "thread_ts": "={{ $json.thread_ts }}",
-              "reply_broadcast": false
+              "thread_ts": "={{ $json.thread_ts }}"
             }
           }
         }
@@ -348,18 +198,19 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        600,
-        200
+        80,
+        80
       ],
-      "id": "streaming-slack-update",
+      "id": "c5839899-3f32-49ef-af22-c3df82043e20",
       "name": "Streaming Slack Update",
-      "onError": "continueRegularOutput",
+      "webhookId": "d8b63ae3-153c-419c-98b8-500720165615",
       "credentials": {
         "slackApi": {
           "id": "Gz8fbHHn1c1YObO6",
           "name": "Slack account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -385,18 +236,19 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        300,
-        400
+        -144,
+        272
       ],
-      "id": "final-response",
+      "id": "6d2ea711-9254-4041-869d-9842d8887135",
       "name": "Send Final Response",
-      "onError": "continueRegularOutput",
+      "webhookId": "1f6a1300-9eed-42af-b30f-9a5901a3d887",
       "credentials": {
         "slackApi": {
           "id": "Gz8fbHHn1c1YObO6",
           "name": "Slack account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -415,7 +267,7 @@
       "main": [
         [
           {
-            "node": "Context Monitor",
+            "node": "Simple Message Processor",
             "type": "main",
             "index": 0
           },
@@ -427,94 +279,18 @@
         ]
       ]
     },
-    "Context Monitor": {
+    "Simple Message Processor": {
       "main": [
         [
           {
-            "node": "Action Switch",
+            "node": "Claude Code Streaming",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Action Switch": {
-      "main": [
-        [
-          {
-            "node": "Claude Code Create Thread",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Auto-Compaction Manager",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Claude Code Persistent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Auto-Compaction Manager": {
-      "main": [
-        [
-          {
-            "node": "Compaction Status Blocks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Compaction Status Blocks": {
-      "main": [
-        [
-          {
-            "node": "Send Compaction Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Claude Code Create Thread": {
-      "main": [
-        [
-          {
-            "node": "Initialize Thread",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Simplified Streaming Processor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Initialize Thread": {
-      "main": [
-        [
-          {
-            "node": "Send Final Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Claude Code Persistent": {
+    "Claude Code Streaming": {
       "main": [
         [
           {
@@ -544,28 +320,8 @@
       ]
     }
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "persistent-collaborative-v1",
+  "pinData": {},
   "meta": {
-    "instanceId": "persistent-collaborative-chat"
-  },
-  "id": "PersistentCollaborativeWorkflow",
-  "tags": ["persistent", "collaborative", "auto-compaction", "simplified"],
-  "notes": {
-    "description": "Simplified persistent collaborative chat with intelligent auto-compaction. Features: single thread management, automatic context optimization, smart Block Kit status updates, and seamless human-AI collaboration.",
-    "nodeCount": 13,
-    "reductionFrom": "16 nodes (removed Message Type Router, Store Message Timestamp, redundant routing)",
-    "keyFeatures": [
-      "Single persistent thread for tom-docs channel",
-      "Automatic context monitoring and compaction", 
-      "Intelligent Claude Code summarization",
-      "Rich Block Kit status updates during compaction",
-      "Memory management with workflow static data",
-      "Collaborative streaming with reduced noise",
-      "Professional compaction status messages"
-    ]
+    "instanceId": "a05210b476fa640672a7c86424ec8108aff686f288b0dd16da68e95e1ed40ce5"
   }
 }

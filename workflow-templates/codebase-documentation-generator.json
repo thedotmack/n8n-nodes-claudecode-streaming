@@ -47,7 +47,7 @@
       },
       "id": "generate-docs",
       "name": "Generate Documentation",
-      "type": "claudeCodeStreaming",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [450, 300]
     },
@@ -71,7 +71,7 @@
       },
       "id": "create-diagrams",
       "name": "Create Architecture Diagrams",
-      "type": "claudeCodeStreaming",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [650, 300]
     },

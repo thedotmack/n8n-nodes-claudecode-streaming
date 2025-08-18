@@ -38,7 +38,7 @@
       },
       "id": "claude-analyzer",
       "name": "Analyze & Fix Bug",
-      "type": "claudeCodeStreaming",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
       "typeVersion": 1,
       "position": [450, 300]
     },

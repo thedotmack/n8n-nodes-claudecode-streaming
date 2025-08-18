@@ -174,6 +174,14 @@ export class ClaudeCodeStreaming implements INodeType {
 						default: true,
 						description: 'Whether to include timestamps in block messages',
 					},
+					{
+						displayName: 'Real-Time Webhook URL',
+						name: 'webhookUrl',
+						type: 'string',
+						default: '',
+						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming',
+						placeholder: 'https://your-n8n-instance/webhook/claude-streaming',
+					},
 				],
 			},
 			{
@@ -233,6 +241,7 @@ export class ClaudeCodeStreaming implements INodeType {
 				const streamingOptions = this.getNodeParameter('streamingOptions', itemIndex) as {
 					enableStreaming?: boolean;
 					includeTimestamps?: boolean;
+					webhookUrl?: string;
 				};
 				const additionalOptions = this.getNodeParameter('additionalOptions', itemIndex) as {
 					systemPrompt?: string;
@@ -258,7 +267,11 @@ export class ClaudeCodeStreaming implements INodeType {
 					console.log(`[ClaudeCodeStreaming] Prompt: ${prompt.substring(0, 100)}...`);
 					console.log(`[ClaudeCodeStreaming] Model: ${model}`);
 					console.log(`[ClaudeCodeStreaming] Streaming enabled: ${streamingOptions.enableStreaming}`);
+					console.log(`[ClaudeCodeStreaming] Webhook URL: ${streamingOptions.webhookUrl || 'Not configured'}`);
 				}
+
+				// Get original message context for real-time streaming
+				const originalContext = items[itemIndex].json || {};
 
 				// Helper function to convert SDK messages to block messages
 				const createBlockMessage = (type: BlockMessage['type'], content: string, metadata?: Record<string, any>): BlockMessage => {
@@ -322,10 +335,42 @@ export class ClaudeCodeStreaming implements INodeType {
 
 							// Send block message to streaming output immediately
 							if (blockMessage) {
+								// Add to streaming output for final batch delivery
 								streamingData.push({
 									json: blockMessage,
 									pairedItem: itemIndex,
 								});
+
+								// Send real-time update to webhook if URL is configured
+								if (streamingOptions.webhookUrl && streamingOptions.webhookUrl.trim()) {
+									try {
+										// Send immediately via HTTP request for real-time updates
+										await this.helpers.httpRequest({
+											method: 'POST',
+											url: streamingOptions.webhookUrl.trim(),
+											headers: {
+												'Content-Type': 'application/json',
+												'User-Agent': 'n8n-claude-code-streaming',
+											},
+											body: {
+												blockMessage,
+												context: originalContext,
+												timestamp: new Date().toISOString(),
+												source: 'claude-code-streaming-node',
+											},
+											timeout: 5000, // 5 second timeout for webhook calls
+										});
+
+										if (additionalOptions.debug) {
+											console.log(`[ClaudeCodeStreaming] Sent real-time update: ${blockMessage.type}`);
+										}
+									} catch (webhookError) {
+										// Log webhook errors but don't fail the main execution
+										if (additionalOptions.debug) {
+											console.warn(`[ClaudeCodeStreaming] Webhook error:`, webhookError instanceof Error ? webhookError.message : 'Unknown error');
+										}
+									}
+								}
 							}
 						}
 
@@ -421,6 +466,29 @@ export class ClaudeCodeStreaming implements INodeType {
 							json: errorBlock,
 							pairedItem: itemIndex,
 						});
+
+						// Send error to webhook for real-time notification
+						if (streamingOptions.webhookUrl && streamingOptions.webhookUrl.trim()) {
+							try {
+								await this.helpers.httpRequest({
+									method: 'POST',
+									url: streamingOptions.webhookUrl.trim(),
+									headers: {
+										'Content-Type': 'application/json',
+										'User-Agent': 'n8n-claude-code-streaming',
+									},
+									body: {
+										blockMessage: errorBlock,
+										context: originalContext,
+										timestamp: new Date().toISOString(),
+										source: 'claude-code-streaming-node-error',
+									},
+									timeout: 5000,
+								});
+							} catch (webhookError) {
+								// Ignore webhook errors during error handling
+							}
+						}
 					}
 
 					throw queryError;

@@ -68,9 +68,9 @@ Ready-to-use workflow templates that showcase the power of Claude Code streaming
    "projectPath": "/path/to/your/project"  // Update this!
    ```
 
-2. **Node Type**: All templates use the simplified streaming node
+2. **Node Type**: All templates use the correct streaming node type
    ```javascript
-   "type": "claudeCodeStreaming"  // Correct node type
+   "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming"
    ```
 
 3. **Streaming Options**: Configure real-time block message streaming
@@ -144,7 +144,7 @@ Connect both outputs for complete workflow:
 ### Basic Streaming Setup
 ```json
 {
-  "type": "claudeCodeStreaming",
+  "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
   "parameters": {
     "prompt": "Analyze this codebase and fix any issues",
     "streamingOptions": {

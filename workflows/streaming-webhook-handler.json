@@ -1,0 +1,214 @@
+{
+  "name": "Real-Time Streaming Webhook Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook/claude-streaming",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "streaming-webhook",
+      "name": "Streaming Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "claude-streaming-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Real-Time BlockMessage to Slack Formatter\n// Processes individual BlockMessage objects immediately\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const webhookBody = item.json.body;\n  \n  // Extract BlockMessage and context from webhook payload\n  const blockMessage = webhookBody.blockMessage;\n  const context = webhookBody.context || {};\n  \n  if (!blockMessage || !blockMessage.type || !blockMessage.content) {\n    console.log('Invalid BlockMessage received:', blockMessage);\n    continue;\n  }\n  \n  // Get channel and thread info\n  const channel = 'C09ANU1Q0QZ'; // tom-docs channel\n  const event_ts = context.event_ts || context.ts || new Date().toISOString();\n  const prompt = context.text || 'Claude Code Request';\n  \n  // Determine if this should trigger a Slack update\n  if (shouldCreateSlackUpdate(blockMessage)) {\n    const slackPayload = createSlackBlockKit(\n      blockMessage,\n      context,\n      event_ts,\n      prompt\n    );\n    \n    results.push({\n      json: {\n        ...slackPayload,\n        blockMessageType: blockMessage.type,\n        originalBlockMessage: blockMessage,\n        timestamp: blockMessage.timestamp,\n        isRealTimeUpdate: true,\n        source: 'streaming-webhook'\n      }\n    });\n  }\n}\n\nfunction shouldCreateSlackUpdate(blockMessage) {\n  // Always update on important events\n  if (blockMessage.type === 'tool_use' || blockMessage.type === 'error' || blockMessage.type === 'status') {\n    return true;\n  }\n  \n  // Update for text blocks if they contain significant content\n  if (blockMessage.type === 'text' && blockMessage.content.length > 50) {\n    return true;\n  }\n  \n  // Skip very short text updates to reduce noise\n  return false;\n}\n\nfunction createSlackBlockKit(blockMessage, context, event_ts, prompt) {\n  const channel = 'C09ANU1Q0QZ';\n  \n  // Determine status based on block message type\n  const statusInfo = getStatusInfo(blockMessage);\n  \n  const blocks = [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `${statusInfo.icon} *${statusInfo.text}* (Live Update)`\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Request:*\\\\n${prompt.substring(0, 150)}${prompt.length > 150 ? '...' : ''}`\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": `*Type:*\\\\nReal-time Streaming`\n        }\n      ]\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*${blockMessage.type.toUpperCase()}:*\\\\n${blockMessage.content.substring(0, 500)}${blockMessage.content.length > 500 ? '...' : ''}`\n      }\n    }\n  ];\n\n  // Add metadata if present\n  if (blockMessage.metadata && Object.keys(blockMessage.metadata).length > 0) {\n    const metadataText = Object.entries(blockMessage.metadata)\n      .map(([key, value]) => `*${key}:* ${value}`)\n      .join('\\\\n');\n    \n    blocks.push({\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": `*Details:*\\\\n${metadataText}`\n      }\n    });\n  }\n\n  // Add timestamp context\n  blocks.push({\n    \"type\": \"context\",\n    \"elements\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": `🕒 ${blockMessage.timestamp} • Live: ${blockMessage.type}`\n      }\n    ]\n  });\n\n  return {\n    channel: channel,\n    thread_ts: event_ts,\n    messageType: 'update',\n    blocks: blocks,\n    text: `${statusInfo.icon} ${statusInfo.text}: ${blockMessage.content.substring(0, 100)}`,\n    blockMessage: blockMessage,\n    timestamp: blockMessage.timestamp\n  };\n}\n\nfunction getStatusInfo(blockMessage) {\n  switch (blockMessage.type) {\n    case 'text':\n      return { icon: '💬', text: 'Claude Response' };\n    case 'tool_use':\n      return { icon: '🔧', text: 'Using Tool' };\n    case 'status':\n      return { icon: '✅', text: 'Status Update' };\n    case 'error':\n      return { icon: '❌', text: 'Error' };\n    case 'code':\n      return { icon: '💻', text: 'Code Output' };\n    default:\n      return { icon: '⚡', text: 'Claude Working' };\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "id": "process-streaming-message",
+      "name": "Process Streaming Message",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-slack-payload",
+              "leftValue": "={{ $json.blocks }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        650,
+        300
+      ],
+      "id": "check-should-send",
+      "name": "Should Send to Slack?"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09ANU1Q0QZ",
+          "mode": "list",
+          "cachedResultName": "tom-docs"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ $json.blocks }}",
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.thread_ts }}",
+              "reply_broadcast": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        850,
+        250
+      ],
+      "id": "send-to-slack",
+      "name": "Send Real-Time Update",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09ANU1Q0QZ",
+          "mode": "list",
+          "cachedResultName": "tom-docs"
+        },
+        "text": "⚠️ Real-time streaming update filtered (low priority)",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $('Streaming Webhook').item.json.body.context.event_ts }}",
+              "reply_broadcast": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        850,
+        350
+      ],
+      "id": "log-filtered",
+      "name": "Log Filtered Message",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "slackApi": {
+          "id": "Gz8fbHHn1c1YObO6",
+          "name": "Slack account"
+        }
+      },
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Streaming Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Streaming Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Streaming Message": {
+      "main": [
+        [
+          {
+            "node": "Should Send to Slack?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send to Slack?": {
+      "main": [
+        [
+          {
+            "node": "Send Real-Time Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Filtered Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateId": "claude-code-streaming-webhook-handler"
+  },
+  "pinData": {},
+  "versionId": "streaming-webhook-v1",
+  "triggerCount": 0,
+  "tags": ["streaming", "real-time", "claude-code", "webhook"],
+  "notes": {
+    "description": "Real-time streaming webhook handler for Claude Code BlockMessage updates. Receives streaming data during execution and immediately sends formatted updates to Slack.",
+    "keyFeatures": [
+      "Instant BlockMessage processing during Claude Code execution",
+      "Smart filtering to reduce noise (tool_use, error, status, long text)",
+      "Direct Slack delivery with Block Kit formatting",
+      "Non-blocking operation - failures don't affect main workflow",
+      "Thread-aware updates using original message event_ts"
+    ],
+    "webhookURL": "https://your-n8n-instance/webhook/claude-streaming",
+    "usage": "Called automatically by Claude Code Streaming node during execution"
+  }
+}
