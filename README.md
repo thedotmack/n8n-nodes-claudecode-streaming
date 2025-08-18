@@ -1,87 +1,24 @@
 # n8n-nodes-claudecode-streaming
 
-**Claude Code SDK integration with comprehensive hooks, MCP support, and real-time streaming for n8n**
+**Claude Code SDK integration with real-time block message streaming for n8n**
 
-An n8n community node package that integrates Claude Code SDK with **advanced extensibility features**. Leverage Claude Code's full power through Model Context Protocol (MCP) servers, custom hooks, session management, and real-time streaming updates for enterprise-grade AI automation workflows.
+An n8n community node package that integrates Claude Code SDK with **real-time streaming updates**. See Claude working in real-time through structured block messages with immediate Slack notifications, tool usage tracking, and live progress updates during long operations.
 
 [![n8n](https://img.shields.io/badge/n8n-community_node-orange.svg)](https://n8n.io/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Powered-blue.svg)](https://claude.ai/code)
-[![MCP](https://img.shields.io/badge/MCP-Enabled-green.svg)](https://modelcontextprotocol.io/)
 [![npm](https://img.shields.io/npm/v/@thedotmack/n8n-nodes-claudecode-streaming.svg)](https://www.npmjs.com/package/@thedotmack/n8n-nodes-claudecode-streaming)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
 
-## 🚀 New: Full Claude Code Hooks & MCP Integration
-
-### 🔌 **MCP Server Support**
-Connect Claude Code to external tools and services:
-- **GitHub** - Repository management and code analysis
-- **Slack** - Team communication and notifications  
-- **Jira/Linear** - Issue tracking and project management
-- **PostgreSQL/MongoDB** - Database queries and analysis
-- **Datadog/Sentry** - Monitoring and error tracking
-- **Custom MCP servers** - Build your own integrations
-
-### 🎣 **Claude Code Hooks System** 
-Customize and control Claude Code execution:
-- **PreToolUse Hooks** - Validation and permission control
-- **PostToolUse Hooks** - Cleanup and formatting automation
-- **SessionStart Hooks** - Context injection and initialization
-- **Custom workflows** - Integrate with existing tooling
-
-### ⚙️ **Advanced Configuration**
-Enterprise-ready features:
-- **Session Management** - Continue conversations and resume sessions
-- **Permission Modes** - Fine-grained execution control
-- **Environment Variables** - Secure configuration management
-- **Custom Executables** - Use specialized Claude Code builds
-- **OpenTelemetry** - Monitoring and observability
-- **Debug Mode** - Comprehensive logging and tracing
-
 ## 🌟 What Can You Build?
 
-### 🔧 **Automated Code Reviews with GitHub Integration**
-```json
-{
-  "mcpServers": {
-    "github": {
-      "transport": "sse",
-      "url": "https://api.github.com/mcp"
-    }
-  },
-  "hooks": {
-    "preToolUse": [{
-      "matcher": "mcp__github__create_pr",
-      "command": "validate-pr-requirements.sh"
-    }]
-  }
-}
-```
+### 🔧 **Automated Code Reviews**
+Create workflows that automatically review pull requests, suggest improvements, and even fix issues before merging.
 
-### 🐛 **Intelligent Bug Fixing with Monitoring Tools**
-Connect Sentry, Datadog, and PagerDuty for automated incident response:
-```json
-{
-  "mcpServers": {
-    "sentry": {"transport": "http", "url": "https://mcp.sentry.dev/mcp"},
-    "datadog": {"transport": "sse", "url": "https://api.datadoghq.com/mcp/sse"},
-    "pagerduty": {"transport": "http", "url": "https://api.pagerduty.com/mcp"}
-  }
-}
-```
+### 🐛 **Intelligent Bug Fixing**
+Connect error monitoring tools to Claude Code - automatically diagnose and fix production issues in real-time.
 
-### 📊 **Database Management with MCP**
-Let Claude Code analyze and optimize your databases:
-```json
-{
-  "mcpServers": {
-    "postgres": {
-      "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"]
-    }
-  }
-}
-```
+### 📊 **Database Management**
+Let Claude Code write complex SQL queries, optimize database schemas, and generate migration scripts based on your requirements.
 
 ### 🤖 **Self-Improving Workflows**
 Build n8n workflows that can modify and improve themselves using Claude Code's capabilities.
@@ -92,10 +29,10 @@ Automatically generate and update documentation for your entire codebase, APIs, 
 ### 🔄 **Code Migration**
 Automate the migration of legacy codebases to modern frameworks with intelligent refactoring.
 
-### 🎫 **Enterprise Support Automation**
+### 🎫 **Customer Support Automation**
 Transform support tickets into code fixes automatically:
 - Analyze customer bug reports and reproduce issues
-- Generate fixes for reported problems  
+- Generate fixes for reported problems
 - Create test cases to prevent regression
 - Update documentation based on common questions
 - Auto-respond with workarounds while fixes are deployed
