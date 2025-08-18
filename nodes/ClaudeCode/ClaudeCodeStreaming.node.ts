@@ -657,6 +657,39 @@ export class ClaudeCodeStreaming implements INodeType {
 											json: hookBlock,
 											pairedItem: itemIndex,
 										});
+										// Send hook event to webhook if configured and mode is webhook
+										if (
+											streamingOptions.webhookUrl &&
+											streamingOptions.webhookUrl.trim() &&
+											hooksConfiguration.hooksOutputMode === 'webhook'
+										) {
+											try {
+												await this.helpers.httpRequest({
+													method: 'POST',
+													url: streamingOptions.webhookUrl.trim(),
+													headers: {
+														'Content-Type': 'application/json',
+														'User-Agent': 'n8n-claude-code-streaming',
+													},
+													body: {
+														blockMessage: hookBlock,
+														context: originalContext,
+														timestamp: new Date().toISOString(),
+														source: 'claude-code-hooks-event',
+													},
+													timeout: 5000,
+												});
+											} catch (webhookError) {
+												if (additionalOptions.debug) {
+													console.warn(
+														`[ClaudeCodeStreaming] Webhook error:`,
+														webhookError instanceof Error
+															? webhookError.message
+															: 'Unknown error',
+													);
+												}
+											}
+										}
 									}
 								}
 							} else if (message.type === 'assistant' && (message as any).result) {
