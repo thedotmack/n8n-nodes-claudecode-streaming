@@ -2,187 +2,122 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Common Commands
+## Project Overview
 
-### Development
-- `bun run dev` - Run TypeScript compiler in watch mode for development
-- `bun run build` - Build the project (clean dist, compile TypeScript with bunx, copy icons with gulp)
-- `bun run format` - Format code using Prettier
-- `bun run lint` - Run ESLint to check code quality
-- `bun run lintfix` - Auto-fix linting issues where possible
+This is an n8n community node package that integrates Claude Code SDK with streaming capabilities. It allows n8n workflows to leverage Claude's AI coding assistance with persistent conversation threads, real-time streaming, and MCP (Model Context Protocol) support.
 
-### n8n Integration
-- Install locally: `npm link` then `n8n start` to test the node
-- The node appears in n8n UI under "Claude Code" category
-- Debug output available when Debug option is enabled in node parameters
+**Key Technologies:**
+- n8n community node architecture
+- TypeScript for type-safe development
+- Claude Code SDK (`@anthropic-ai/claude-code`)
+- Bun as the primary runtime and package manager
+- Gulp for build pipeline
 
-### Plugin Update Flow
-When making changes to the n8n node implementation:
-```bash
-cd ~/n8n-nodes-claudecode-streaming && bun run build && bun link @thedotmack/n8n-nodes-claudecode
--streaming && cd ~/.n8n/nodes/ && bun link @thedotmack/n8n-nodes-claudecode-streaming
-```
-This builds the project, creates a local package link, and links it to n8n's node directory for testing.
+**Primary Node:** `ClaudeCodeStreaming` - Provides AI coding assistance with dual outputs (main results + streaming updates)
 
 ## Architecture Overview
 
-This is an n8n community node that integrates Claude Code SDK with streaming capabilities and thread management. The architecture consists of:
+### Core Components
+- **Main Node**: `nodes/ClaudeCode/ClaudeCodeStreaming.node.ts` - The primary n8n node implementation
+- **Utilities**: `src/utilities/` - Streaming processors, memory management, and Slack integration helpers
+- **Workflows**: `src/workflows/` - Auto-compaction and context monitoring utilities  
+- **Templates**: `workflow-templates/` - Ready-to-use n8n workflow examples
+- **Documentation**: `docs/` - Implementation guides for streaming, Block Kit, and validation
 
-1. **Main Node Implementation** (`nodes/ClaudeCode/ClaudeCodeStreaming.node.ts`)
-   - Implements `INodeType` interface from n8n
-   - Provides Create, Update, Get, and Get Many operations for conversation threads
-   - Handles Claude Code SDK initialization and message processing
-   - Manages tool availability and project path configuration
-   - Features dual-output system (main + streaming)
+### Node Architecture
+The main node supports four operations:
+1. **Create** (`newThread`) - Start new conversation threads
+2. **Update** (`continueThread`) - Continue specific threads by ID
+3. **Get** (`continueLast`) - Resume most recent conversation
+4. **Get Many** (`listThreads`) - List all thread metadata
 
-2. **Thread Management System**
-   - Persistent conversation threads stored in n8n workflow static data
-   - Thread operations: Create new, Update existing, Get most recent, Get all threads
-   - Custom thread IDs and metadata support
-   - Message history with configurable limits
+**Dual Output System:**
+- Output 1 (Main): Final results and structured responses
+- Output 2 (Streaming): Real-time updates for routing to Slack/webhooks
 
-3. **Tool System**
-   - Dynamic tool enabling/disabling based on user configuration
-   - Supports: Bash, Edit/MultiEdit, Read/Write, Web operations, Todo management, Task agents
-   - MCP servers supported via Claude's native configuration system (.claude/settings.local.json)
+### Thread Persistence
+Conversations are persisted in n8n's static data using:
+- Individual thread storage: `claude_thread_${threadId}`
+- Thread list metadata: `claude_threads_list`
+- Automatic history trimming and sorting by recency
 
-4. **Streaming & Output Handling**
-   - Dual-output architecture: main results + streaming updates
-   - Multiple output formats: structured JSON, messages array, plain text, thread info
-   - Real-time Slack webhook integration with configurable formats
-   - Streaming output branch for workflow routing and real-time updates
-   - Abort signal handling with configurable timeouts
+## Important Commands
 
-5. **Project Path Support**
-   - Configure working directory via `projectPath` parameter
-   - Allows Claude Code to run in specific project directories
-   - Enables access to code repositories without changing n8n's working directory
+### Development
+```bash
+bun run dev              # Watch mode for TypeScript compilation
+bun run build           # Full build (TypeScript + icons)
+bun run format          # Format code with Prettier
+bun run lint            # Lint with ESLint
+bun run lintfix         # Auto-fix linting issues
+```
 
-## Key Development Patterns
+### Publishing
+```bash
+bun run prepublishOnly  # Build and lint before publishing
+```
 
-### n8n Node Structure
-- All node logic resides in `ClaudeCodeStreaming.node.ts`
-- Parameters defined using n8n's declarative schema with conditional display options
-- Error handling follows n8n patterns with `NodeOperationError`
-- Dual-output system: main results and streaming updates
-- Thread persistence using n8n workflow static data
+**Note:** This project uses Bun as the primary package manager. All commands should be run with `bun run` rather than `npm run`.
+
+## Plugin Update Flow
+
+When implementing new features or bug fixes for this n8n node:
+
+### 1. Local Development
+```bash
+# Make changes to the node code
+bun run build              # Build the changes
+bun run lint              # Verify code quality
+
+# Test in local n8n instance
+cp -r dist/* /path/to/n8n/node_modules/@thedotmack/n8n-nodes-claudecode-streaming/
+# Restart n8n to load changes
+```
+
+### 2. Version and Publish
+```bash
+# Update version in package.json
+npm version patch|minor|major
+bun run prepublishOnly    # Final build and lint
+npm publish              # Publish to npm registry
+```
+
+### 3. Update in n8n
+```bash
+# In n8n installation directory
+npm update @thedotmack/n8n-nodes-claudecode-streaming
+# Restart n8n instance
+```
+
+### 4. Workflow Updates
+If the node interface changes:
+- Update workflow templates in `workflow-templates/`
+- Update documentation in `docs/`
+- Test workflows in `workflows/production/`
+
+## Development Guidelines
 
 ### TypeScript Configuration
-- Strict mode enabled for type safety
-- Target ES2019 with CommonJS modules (n8n requirement)
-- Source maps generated for debugging
-- Output to `dist/` directory
-- Uses Bun for faster compilation
+- Strict type checking enabled
+- Target ES2019 for n8n compatibility  
+- Declaration files generated for IDE support
+- Source maps enabled for debugging
 
-### Code Style
-- Uses tabs with width 2 (n8n standard)
-- Single quotes for strings
-- Semicolins required
-- Maximum line width: 100 characters
-- ESLint configured with n8n-nodes-base rules
+### Node Development Patterns
+- Use n8n's `INodeExecutionData[][]` return format for dual outputs
+- Store persistent data in `this.getWorkflowStaticData('global')`
+- Handle errors with `NodeOperationError` for user-friendly messages
+- Support expressions like `{{$json.fieldName}}` in node parameters
 
-### Thread Management Patterns
-- Threads stored as `claude_thread_${threadId}` in static data
-- Thread list maintained as `claude_threads_list` for indexing
-- Auto-generated thread IDs use timestamp + random hex
-- Message history pruning based on `maxThreadHistory` setting
+### Streaming Implementation
+- Buffer messages to respect rate limits (default 2000ms intervals)
+- Support both webhook delivery and output routing
+- Include threadId in all streaming messages for tracking
+- Handle aborts and timeouts gracefully
 
-## Testing Approach
-
-No automated tests are configured (typical for n8n community nodes). Testing involves:
-1. Building the node: `bun run build`
-2. Linking locally: `npm link`
-3. Starting n8n: `n8n start`
-4. Creating test workflows with various parameter combinations
-5. Testing thread persistence across multiple executions
-6. Using Debug mode to inspect Claude Code interactions and streaming
-
-## Available MCP Tools
-
-This project has access to powerful MCP (Model Context Protocol) tools that enhance development capabilities:
-
-### n8n MCP Server
-Access comprehensive n8n node documentation and configuration assistance:
-- **Node Discovery**: Search and list n8n nodes by category, functionality, or keyword
-- **Configuration Help**: Get detailed property information and validation for any n8n node
-- **Template Access**: Browse and retrieve pre-built workflow templates
-- **Validation Tools**: Validate node configurations and complete workflows before deployment
-
-Example usage patterns:
-```javascript
-// Find nodes for your use case
-search_nodes({query: "claude"}) // Find Claude-related nodes
-list_ai_tools() // List all AI-capable nodes
-get_node_essentials("nodes-base.slack") // Get essential Slack node properties
-
-// Validate configurations
-validate_node_operation("@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming", config)
-validate_workflow(workflowJson) // Validate entire workflow structure
-```
-
-### Context7 Documentation Server
-Access up-to-date documentation for any library or framework:
-- **Library Resolution**: Automatically find the correct documentation source
-- **Focused Documentation**: Retrieve documentation filtered by topic or functionality
-- **Code Examples**: Access comprehensive code snippets and usage patterns
-
-Example usage:
-```javascript
-// Get n8n documentation
-resolve_library_id("n8n") // Find available n8n documentation sources
-get_library_docs("/n8n-io/n8n", {topic: "community nodes"}) // Get specific documentation
-
-// Access workflow examples
-get_library_docs("/enescingoz/awesome-n8n-templates") // Get template examples
-```
-
-### Development Workflow with MCP Tools
-
-1. **Node Research**: Use n8n MCP to understand available nodes and their capabilities
-2. **Configuration**: Get detailed parameter information and validation
-3. **Documentation**: Use Context7 to access current best practices and examples
-4. **Validation**: Validate your node configurations before testing
-5. **Templates**: Access pre-built workflows for common patterns
-
-## Configuration Examples
-
-The `examples/` directory contains sample configurations:
-- **simple-project/**: Basic setup without MCP servers
-- **project-with-mcp/**: Full MCP server configuration example
-
-Key configuration files:
-- `.mcp.json`: Defines available MCP servers (project root)
-- `.claude/settings.json`: Team-shared settings
-- `.claude/settings.local.json`: Personal settings (gitignored)
-
-When using Project Path, Claude Code automatically loads these configurations from the specified directory.
-
-## Opinionated Development Guidance
-
-Based on the architecture and patterns established in this codebase:
-
-### Workflow Design Philosophy
-- **External Code Organization**: Keep complex logic in external `.js` files (like `src/workflows/context-monitor.js`, `src/workflows/auto-compaction-manager.js`) rather than inline in n8n Code nodes. This enables better version control, testing, and maintainability.
-- **Modular Functions**: Each external file should export a single primary function that can be loaded via `eval(require('fs').readFileSync(path))` pattern.
-- **Static Data as Persistence**: Use n8n workflow static data as the primary persistence layer for thread management and context tracking rather than external databases.
-
-### Thread Management Best Practices
-- **Persistent Thread IDs**: Use consistent, meaningful thread IDs (like 'tom-docs') rather than dynamic channel-based IDs for persistent conversations.
-- **Context Thresholds**: Implement smart auto-compaction with clear thresholds (100 messages, 50k characters) to prevent context overflow.
-- **Memory Segments**: Store conversation summaries as structured memory segments with metadata for intelligent context retrieval.
-
-### Streaming Architecture Patterns
-- **Dual Output Design**: Always implement both main result output and streaming output for real-time user feedback.
-- **Smart Filtering**: Reduce streaming noise with intelligent filtering (e.g., every 8th message, time gaps >5 seconds) for collaborative contexts.
-- **Block Kit Integration**: Use Slack Block Kit for rich, structured status updates that provide clear progress indication.
-
-### Error Handling and Resilience
-- **Graceful Degradation**: Include fallback mechanisms in auto-compaction and summarization processes.
-- **Continue on Error**: Use `onError: "continueRegularOutput"` for non-critical nodes to maintain workflow stability.
-- **Timeout Management**: Set reasonable timeouts (86400s for long-running Claude Code operations) with proper abort signal handling.
-
-### Development Anti-Patterns to Avoid
-- **Inline Complex Logic**: Don't embed complex business logic directly in n8n Code nodes - externalize it.
-- **Dynamic Channel Routing**: Avoid using dynamic channel IDs that can result in "undefined" values - use hardcoded constants where appropriate.
-- **Excessive Streaming**: Don't stream every single message update - implement smart filtering to reduce noise.
-- **Memory Bloat**: Don't accumulate unlimited conversation history - implement auto-compaction and memory management.
+### File Structure Conventions
+- Node implementations: `nodes/[NodeName]/[NodeName].node.ts`
+- Utilities: `src/utilities/` (reusable functions)
+- Workflows: `src/workflows/` (workflow-specific logic)
+- Examples: `examples/` and `workflow-templates/`
+- Documentation: `docs/` (implementation guides)

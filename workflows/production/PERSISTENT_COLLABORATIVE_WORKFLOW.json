@@ -142,8 +142,9 @@
             }
           ]
         },
-        "fallbackOutput": 2,
-        "options": {}
+        "options": {
+          "fallbackOutput": 2
+        }
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
