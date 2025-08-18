@@ -1,0 +1,384 @@
+{
+  "name": "Enterprise Claude Code Configuration",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8b24d5dd-6efe-40b7-acc1-b3fb1f44a1c2",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "prompt": "Analyze the production deployment pipeline and suggest improvements for our microservices architecture. Review recent incidents and provide recommendations.",
+        "model": "opus",
+        "maxTurns": 30,
+        "timeout": 1800,
+        "mcpConfiguration": {
+          "enableMcp": true,
+          "mcpServers": {
+            "servers": [
+              {
+                "name": "github",
+                "transport": "sse",
+                "url": "https://api.github.com/mcp",
+                "headers": {
+                  "headers": [
+                    {
+                      "name": "Authorization",
+                      "value": "Bearer {{ $env.GITHUB_TOKEN }}"
+                    },
+                    {
+                      "name": "X-GitHub-Enterprise-Host",
+                      "value": "github.company.com"
+                    }
+                  ]
+                },
+                "scope": "project"
+              },
+              {
+                "name": "jira",
+                "transport": "http",
+                "url": "https://company.atlassian.net/mcp",
+                "headers": {
+                  "headers": [
+                    {
+                      "name": "Authorization",
+                      "value": "Bearer {{ $env.JIRA_TOKEN }}"
+                    }
+                  ]
+                },
+                "scope": "user"
+              },
+              {
+                "name": "datadog",
+                "transport": "sse",
+                "url": "https://api.datadoghq.com/mcp/sse",
+                "headers": {
+                  "headers": [
+                    {
+                      "name": "DD-API-KEY",
+                      "value": "{{ $env.DATADOG_API_KEY }}"
+                    },
+                    {
+                      "name": "DD-APPLICATION-KEY",
+                      "value": "{{ $env.DATADOG_APP_KEY }}"
+                    }
+                  ]
+                },
+                "scope": "project"
+              },
+              {
+                "name": "pagerduty",
+                "transport": "http",
+                "url": "https://api.pagerduty.com/mcp",
+                "headers": {
+                  "headers": [
+                    {
+                      "name": "Authorization",
+                      "value": "Token token={{ $env.PAGERDUTY_TOKEN }}"
+                    }
+                  ]
+                },
+                "scope": "project"
+              },
+              {
+                "name": "postgres",
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-postgres"],
+                "env": {
+                  "variables": [
+                    {
+                      "name": "DATABASE_URL",
+                      "value": "{{ $env.PRODUCTION_DB_URL }}"
+                    }
+                  ]
+                },
+                "scope": "local"
+              }
+            ]
+          },
+          "mcpConfigPath": "/company/shared-configs/.mcp.json",
+          "allowedMcpTools": [
+            "mcp__github__search_repositories",
+            "mcp__github__get_pull_requests",
+            "mcp__github__get_commits",
+            "mcp__jira__search_issues",
+            "mcp__jira__get_issue",
+            "mcp__datadog__get_metrics",
+            "mcp__datadog__search_logs",
+            "mcp__pagerduty__list_incidents",
+            "mcp__pagerduty__get_incident",
+            "mcp__postgres__query_readonly"
+          ]
+        },
+        "claudeHooks": {
+          "enableHooks": true,
+          "preToolUseHooks": {
+            "hooks": [
+              {
+                "matcher": "mcp__postgres__.*",
+                "command": "/company/scripts/validate-db-query.py",
+                "permissionDecision": "ask"
+              },
+              {
+                "matcher": "mcp__github__.*",
+                "command": "echo \"$(date): GitHub API access requested by $(whoami)\" >> /var/log/claude-audit.log",
+                "permissionDecision": "allow"
+              },
+              {
+                "matcher": "Bash",
+                "command": "/company/scripts/security-check.sh",
+                "permissionDecision": "deny"
+              }
+            ]
+          },
+          "postToolUseHooks": {
+            "hooks": [
+              {
+                "matcher": "mcp__datadog__.*",
+                "command": "/company/scripts/cache-metrics.py"
+              },
+              {
+                "matcher": "mcp__jira__.*",
+                "command": "echo \"$(date): JIRA interaction completed\" >> /var/log/jira-access.log"
+              }
+            ]
+          },
+          "sessionStartHooks": {
+            "hooks": [
+              {
+                "command": "/company/scripts/init-enterprise-session.sh",
+                "additionalContext": "Enterprise DevOps Analysis Session\\n\\nGuidelines:\\n- Focus on production stability and performance\\n- Consider security and compliance requirements\\n- Provide cost-effective solutions\\n- Include monitoring and alerting recommendations\\n- Follow company architecture patterns\\n\\nAccess Level: Senior DevOps Engineer\\nCompliance: SOC2, GDPR, HIPAA"
+              }
+            ]
+          }
+        },
+        "advancedConfig": {
+          "systemPrompt": "You are a senior DevOps engineer and SRE specialist working for a Fortune 500 company. You have deep expertise in microservices architecture, Kubernetes, CI/CD pipelines, monitoring, and incident response. Always consider security, scalability, cost optimization, and compliance requirements in your recommendations.",
+          "permissionMode": "default",
+          "sessionManagement": "continue",
+          "workingDirectory": "/company/devops-analysis",
+          "environmentVariables": {
+            "variables": [
+              {
+                "name": "COMPANY_ENVIRONMENT",
+                "value": "production"
+              },
+              {
+                "name": "COMPLIANCE_LEVEL",
+                "value": "SOC2_TYPE2"
+              },
+              {
+                "name": "LOG_LEVEL",
+                "value": "INFO"
+              },
+              {
+                "name": "AUDIT_ENABLED",
+                "value": "true"
+              }
+            ]
+          },
+          "customExecutable": "/usr/local/bin/claude-enterprise",
+          "executableArgs": ["--enterprise-mode", "--audit-trail"],
+          "debug": false,
+          "enableTelemetry": true,
+          "telemetryConfig": {
+            "configs": [
+              {
+                "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                "value": "https://otel-collector.company.com:4317"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
+                "value": "grpc"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_HEADERS",
+                "value": "Authorization=Bearer {{ $env.OTEL_TOKEN }}"
+              },
+              {
+                "name": "OTEL_METRICS_EXPORTER",
+                "value": "otlp"
+              },
+              {
+                "name": "OTEL_LOGS_EXPORTER",
+                "value": "otlp"
+              },
+              {
+                "name": "OTEL_SERVICE_NAME",
+                "value": "claude-code-enterprise"
+              },
+              {
+                "name": "OTEL_SERVICE_VERSION",
+                "value": "1.0.0"
+              }
+            ]
+          }
+        },
+        "allowedTools": [
+          "Read",
+          "Grep", 
+          "LS",
+          "Glob",
+          "Task"
+        ],
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true,
+          "webhookUrl": "https://webhooks.company.com/claude-devops-updates",
+          "channelContext": "enterprise-devops-analysis"
+        }
+      },
+      "id": "927eb4be-46d8-45f4-9ad8-f0c8d7db7ad8",
+      "name": "Enterprise Claude Code Analysis",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "postToChannel",
+        "channel": "devops-alerts",
+        "text": "🤖 **DevOps Analysis Complete**\\n\\n📊 **Summary**: {{ $json.summary.assistantMessageCount }} recommendations generated\\n⏱️ **Duration**: {{ $json.metrics.duration_ms }}ms\\n💰 **Cost**: ${{ $json.metrics.total_cost_usd }}\\n\\n🔗 **Full Report**: Available in n8n workflow results",
+        "otherOptions": {}
+      },
+      "id": "5c7f8a92-3d4e-4b5c-8f9e-2a6b1c8d7e5f",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "company-slack-bot",
+          "name": "Company Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "project": "DEVOPS",
+        "issueType": "Task",
+        "summary": "DevOps Analysis Recommendations - {{ new Date().toISOString().split('T')[0] }}",
+        "description": "Automated DevOps analysis completed with the following recommendations:\\n\\n{{ $json.result }}\\n\\nGenerated by: Claude Code Enterprise\\nExecution ID: {{ $workflow.id }}\\nTimestamp: {{ $workflow.createdAt }}",
+        "priority": "Medium",
+        "assignee": "devops-team"
+      },
+      "id": "9f8e7d6c-5b4a-3c2d-1e9f-8g7h6i5j4k3l",
+      "name": "Create JIRA Task",
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        400
+      ],
+      "credentials": {
+        "jiraCloudApi": {
+          "id": "company-jira",
+          "name": "Company JIRA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "analysisType",
+              "value": "enterprise-devops"
+            },
+            {
+              "name": "recommendations",
+              "value": "={{ $json.result }}"
+            },
+            {
+              "name": "executionTime",
+              "value": "={{ $json.metrics.duration_ms }}"
+            },
+            {
+              "name": "totalCost",
+              "value": "={{ $json.metrics.total_cost_usd }}"
+            },
+            {
+              "name": "complianceLevel",
+              "value": "SOC2_TYPE2"
+            },
+            {
+              "name": "auditTrail",
+              "value": "enabled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a1b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
+      "name": "Format Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Enterprise Claude Code Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enterprise Claude Code Analysis": {
+      "main": [
+        [
+          {
+            "node": "Notify Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create JIRA Task",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "America/New_York",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "versionId": "95e36db8-4g42-6hf5-0e35-95d7g0c1h4g6",
+  "id": "enterprise-claude-code-configuration",
+  "meta": {
+    "instanceId": "claude-code-enterprise-n8n"
+  },
+  "tags": ["claude-code", "enterprise", "devops", "mcp", "hooks", "compliance", "monitoring"]
+}

@@ -1,0 +1,169 @@
+{
+  "name": "Claude Code MCP Integration Example",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8b24d5dd-6efe-40b7-acc1-b3fb1f44a1c2",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "prompt": "Check GitHub issues for the repository and create a summary of open bugs",
+        "model": "sonnet",
+        "maxTurns": 15,
+        "timeout": 600,
+        "mcpConfiguration": {
+          "enableMcp": true,
+          "mcpServers": {
+            "servers": [
+              {
+                "name": "github",
+                "transport": "sse",
+                "url": "https://api.github.com/mcp",
+                "headers": {
+                  "headers": [
+                    {
+                      "name": "Authorization",
+                      "value": "Bearer {{ $env.GITHUB_TOKEN }}"
+                    }
+                  ]
+                },
+                "scope": "local"
+              },
+              {
+                "name": "slack",
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-slack"],
+                "env": {
+                  "variables": [
+                    {
+                      "name": "SLACK_BOT_TOKEN",
+                      "value": "{{ $env.SLACK_BOT_TOKEN }}"
+                    },
+                    {
+                      "name": "SLACK_TEAM_ID", 
+                      "value": "{{ $env.SLACK_TEAM_ID }}"
+                    }
+                  ]
+                },
+                "scope": "project"
+              }
+            ]
+          },
+          "allowedMcpTools": [
+            "mcp__github__search_issues",
+            "mcp__github__get_issue",
+            "mcp__slack__send_message"
+          ]
+        },
+        "claudeHooks": {
+          "enableHooks": true,
+          "preToolUseHooks": {
+            "hooks": [
+              {
+                "matcher": "mcp__github__.*",
+                "command": "echo 'GitHub API operation initiated' >> /tmp/mcp-operations.log",
+                "permissionDecision": "allow"
+              }
+            ]
+          },
+          "postToolUseHooks": {
+            "hooks": [
+              {
+                "matcher": "mcp__slack__send_message",
+                "command": "echo 'Slack message sent successfully' >> /tmp/slack-notifications.log"
+              }
+            ]
+          },
+          "sessionStartHooks": {
+            "hooks": [
+              {
+                "command": "echo 'Starting GitHub analysis session' >> /tmp/session.log",
+                "additionalContext": "You are analyzing GitHub issues for a development team. Focus on critical bugs and provide actionable insights."
+              }
+            ]
+          }
+        },
+        "advancedConfig": {
+          "permissionMode": "acceptEdits",
+          "sessionManagement": "continue",
+          "environmentVariables": {
+            "variables": [
+              {
+                "name": "GITHUB_REPO",
+                "value": "thedotmack/n8n-nodes-claudecode-streaming"
+              }
+            ]
+          },
+          "debug": true
+        },
+        "streamingOptions": {
+          "enableStreaming": true,
+          "includeTimestamps": true,
+          "webhookUrl": "https://hooks.n8n.cloud/webhook/claude-mcp-updates"
+        }
+      },
+      "id": "927eb4be-46d8-45f4-9ad8-f0c8d7db7ad8",
+      "name": "Claude Code with MCP Integration",
+      "type": "@thedotmack/n8n-nodes-claudecode-streaming.claudeCodeStreaming",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=GitHub Issues Analysis Complete:\n\n{{ $json.result }}\n\nExecution took {{ $json.metrics.duration_ms }}ms\nTotal cost: ${{ $json.metrics.total_cost_usd }}",
+        "options": {}
+      },
+      "id": "8f7c4f36-9d9e-42f4-9b15-7d8f4e5c2b3a",
+      "name": "Display Results",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Claude Code with MCP Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Code with MCP Integration": {
+      "main": [
+        [
+          {
+            "node": "Display Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "75d16cb6-2e21-4df3-8c13-73c5f8b9f2e4",
+  "id": "claude-mcp-integration-example",
+  "meta": {
+    "instanceId": "claude-code-n8n-example"
+  },
+  "tags": ["claude-code", "mcp", "github", "slack", "automation"]
+}
