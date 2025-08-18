@@ -20,7 +20,8 @@ def main():
             (r"(?i)delete\s+all", "Dangerous delete operation"),
             (r"(?i)drop\s+table", "Dangerous SQL operation"),
             (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "Credit card number pattern"),
-            (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "Email address"),
+# examples/hooks-example/hooks/prompt-validator.py (around line 23)
+            (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "Email address"),
         ]
         
         for pattern, description in sensitive_patterns:
