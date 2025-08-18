@@ -16,11 +16,30 @@ function monitorContext() {
   
   for (const item of items) {
     const originalMessage = $('On Message Received').item.json;
-    const channel = originalMessage.channel;
+    const channel = 'C09ANU1Q0QZ';
     const messageText = originalMessage.text || '';
     
-    // Create persistent thread ID based on channel
-    const persistentThreadId = `collaborative_${channel}`;
+    // Create persistent thread ID - always use tom-docs
+    const persistentThreadId = 'tom-docs';
+    
+    // Check if thread exists in static data
+    const staticData = $workflow.staticData || {};
+    const threadExists = staticData.thread_created === true;
+    
+    if (!threadExists) {
+      // Thread doesn't exist - trigger creation
+      results.push({
+        json: {
+          action: 'create_thread',
+          threadId: persistentThreadId,
+          channel: channel,
+          prompt: `Starting collaborative chat. User request: ${messageText}`,
+          messageText: messageText,
+          timestamp: new Date().toISOString()
+        }
+      });
+      continue;
+    }
     
     // Get current context stats from static data
     const contextStats = getContextStats(persistentThreadId);
