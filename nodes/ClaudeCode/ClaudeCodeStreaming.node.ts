@@ -423,8 +423,8 @@ export class ClaudeCodeStreaming implements INodeType {
 					}
 				}
 
-				// Get original message context for real-time streaming
-				const originalContext = items[itemIndex].json || {};
+				// Get original message context for real-time streaming (currently unused but available for future enhancements)
+				// const originalContext = items[itemIndex].json || {};
 
 				// Helper function to convert SDK messages to block messages
 				const createBlockMessage = (type: BlockMessage['type'], content: string, metadata?: Record<string, any>): BlockMessage => {

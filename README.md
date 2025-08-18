@@ -301,4 +301,53 @@ MIT - Build amazing things!
 
 **Ready to revolutionize your development workflow?** Install Claude Code for n8n today and join the future of automated software development!
 
+## 🛠️ Development
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/thedotmack/n8n-nodes-claudecode-streaming.git
+cd n8n-nodes-claudecode-streaming
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# For Bun users (alternative)
+npm run build:bun
+```
+
+### Available Scripts
+
+- `npm run build` - Build TypeScript and copy icons (npm compatible)
+- `npm run build:bun` - Build using Bun (requires Bun installation)
+- `npm run dev` - Watch mode for development
+- `npm run lint` - Check code quality
+- `npm run format` - Format code with Prettier
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests (when available)
+5. Run `npm run lint` and `npm run build`
+6. Submit a pull request
+
+## 🔒 Security Notice
+
+This package currently has dependencies with known security vulnerabilities:
+- **form-data**: Critical vulnerability in versions 4.0.0-4.0.3 (via n8n-workflow peer dependency)
+
+These vulnerabilities are in peer dependencies and cannot be directly fixed by this package. We are tracking upstream fixes and will update when resolved.
+
+For production use, ensure your n8n installation is kept up to date and consider security monitoring for your deployment.
+
+## 📄 License
+
+MIT License - see [LICENSE.md](LICENSE.md) for details.
+
 Made with ❤️ by [Adam Holt](https://github.com/holt-web-ai)
