@@ -254,11 +254,6 @@ export class ClaudeCodeStreaming implements INodeType {
 						default: '',
 						description: 'Slack webhook URL to send streaming updates to',
 						placeholder: 'e.g., https://hooks.slack.com/services/...',
-						displayOptions: {
-							show: {
-								enableStreaming: [true],
-							},
-						},
 					},
 					{
 						displayName: 'Thread Timestamp',
@@ -266,11 +261,6 @@ export class ClaudeCodeStreaming implements INodeType {
 						type: 'string',
 						default: '',
 						description: 'Slack thread timestamp to reply to (optional)',
-						displayOptions: {
-							show: {
-								enableStreaming: [true],
-							},
-						},
 					},
 					{
 						displayName: 'Stream Format',
@@ -295,11 +285,6 @@ export class ClaudeCodeStreaming implements INodeType {
 						],
 						default: 'status',
 						description: 'Choose what type of updates to stream to Slack',
-						displayOptions: {
-							show: {
-								enableStreaming: [true],
-							},
-						},
 					},
 					{
 						displayName: 'Batch Interval (ms)',
@@ -307,11 +292,6 @@ export class ClaudeCodeStreaming implements INodeType {
 						type: 'number',
 						default: 2000,
 						description: 'Minimum time between webhook calls to avoid rate limits',
-						displayOptions: {
-							show: {
-								enableStreaming: [true],
-							},
-						},
 					},
 				],
 			},

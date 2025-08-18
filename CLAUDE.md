@@ -63,16 +63,20 @@ bun run prepublishOnly  # Build and lint before publishing
 
 When implementing new features or bug fixes for this n8n node:
 
-### 1. Local Development
+### 1. Local Development (Linked Package)
 ```bash
-# Make changes to the node code
-bun run build              # Build the changes
-bun run lint              # Verify code quality
+# Link the package locally for development
+bun link                   # Register this package for linking
+cd /path/to/n8n/project   # Navigate to your n8n instance
+bun link @thedotmack/n8n-nodes-claudecode-streaming  # Link the package
 
-# Test in local n8n instance
-cp -r dist/* /path/to/n8n/node_modules/@thedotmack/n8n-nodes-claudecode-streaming/
-# Restart n8n to load changes
+# Development workflow
+bun run build             # Build changes
+# n8n will automatically use the linked version
+# Restart n8n to reload node changes
 ```
+
+**Note:** npm registry errors (404, CORS) in browser console are expected for linked packages and can be ignored. The config error may indicate a separate issue with node initialization.
 
 ### 2. Version and Publish
 ```bash
