@@ -179,7 +179,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						name: 'webhookUrl',
 						type: 'string',
 						default: '',
-						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming',
+						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming.',
 						placeholder: 'https://your-n8n-instance/webhook/claude-streaming',
 					},
 					{
@@ -189,6 +189,181 @@ export class ClaudeCodeStreaming implements INodeType {
 						default: '',
 						description: 'Channel or conversation identifier for context (e.g., slack-C1234567890)',
 						placeholder: 'slack-C1234567890',
+					},
+				],
+			},
+			{
+				displayName: 'Claude Code Hooks',
+				name: 'hooksConfiguration',
+				type: 'collection',
+				placeholder: 'Add Hook Configuration',
+				default: {},
+				description: 'Configure Claude Code hooks to intercept and customize tool execution',
+				options: [
+					{
+						displayName: 'Enable Hooks',
+						name: 'enableHooks',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to enable Claude Code hooks for this execution',
+					},
+					{
+						displayName: 'Hook Events',
+						name: 'hookEvents',
+						type: 'fixedCollection',
+						placeholder: 'Add Hook Event',
+						default: {},
+						typeOptions: {
+							multipleValues: true,
+						},
+						displayOptions: {
+							show: {
+								enableHooks: [true],
+							},
+						},
+						options: [
+							{
+								name: 'preToolUse',
+								displayName: 'Pre-Tool Use Hooks',
+								values: [
+									{
+										displayName: 'Tool Pattern',
+										name: 'matcher',
+										type: 'string',
+										default: '*',
+										description: 'Tool name pattern to match (e.g., "Write", "Bash", "*" for all)',
+										placeholder: 'Write|Edit|Bash',
+									},
+									{
+										displayName: 'Hook Command',
+										name: 'command',
+										type: 'string',
+										default: '',
+										description: 'Command to execute when this hook is triggered',
+										placeholder: 'python ./hooks/validate-tool.py',
+									},
+									{
+										displayName: 'Description',
+										name: 'description',
+										type: 'string',
+										default: '',
+										description: 'Optional description of what this hook does',
+									},
+								],
+							},
+							{
+								name: 'postToolUse',
+								displayName: 'Post-Tool Use Hooks',
+								values: [
+									{
+										displayName: 'Tool Pattern',
+										name: 'matcher',
+										type: 'string',
+										default: '*',
+										description: 'Tool name pattern to match (e.g., "Write", "Bash", "*" for all)',
+										placeholder: 'Write|Edit',
+									},
+									{
+										displayName: 'Hook Command',
+										name: 'command',
+										type: 'string',
+										default: '',
+										description: 'Command to execute when this hook is triggered',
+										placeholder: 'python ./hooks/post-process.py',
+									},
+									{
+										displayName: 'Description',
+										name: 'description',
+										type: 'string',
+										default: '',
+										description: 'Optional description of what this hook does',
+									},
+								],
+							},
+							{
+								name: 'userPromptSubmit',
+								displayName: 'User Prompt Submit Hooks',
+								values: [
+									{
+										displayName: 'Hook Command',
+										name: 'command',
+										type: 'string',
+										default: '',
+										description: 'Command to execute when user submits a prompt',
+										placeholder: 'python ./hooks/validate-prompt.py',
+									},
+									{
+										displayName: 'Description',
+										name: 'description',
+										type: 'string',
+										default: '',
+										description: 'Optional description of what this hook does',
+									},
+								],
+							},
+							{
+								name: 'stop',
+								displayName: 'Stop Hooks',
+								values: [
+									{
+										displayName: 'Hook Command',
+										name: 'command',
+										type: 'string',
+										default: '',
+										description: 'Command to execute when Claude tries to stop',
+										placeholder: 'python ./hooks/before-stop.py',
+									},
+									{
+										displayName: 'Description',
+										name: 'description',
+										type: 'string',
+										default: '',
+										description: 'Optional description of what this hook does',
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Hooks Output Mode',
+						name: 'hooksOutputMode',
+						type: 'options',
+						options: [
+							{
+								name: 'Silent',
+								value: 'silent',
+								description: 'Hook execution happens in the background without streaming output',
+							},
+							{
+								name: 'Streaming',
+								value: 'streaming',
+								description: 'Hook events and results are sent to streaming output',
+							},
+							{
+								name: 'Webhook',
+								value: 'webhook',
+								description: 'Hook events are sent to configured webhook URL',
+							},
+						],
+						default: 'streaming',
+						displayOptions: {
+							show: {
+								enableHooks: [true],
+							},
+						},
+						description: 'How to handle hook execution output',
+					},
+					{
+						displayName: 'Hook Timeout (Seconds)',
+						name: 'hookTimeout',
+						type: 'number',
+						default: 30,
+						displayOptions: {
+							show: {
+								enableHooks: [true],
+							},
+						},
+						description: 'Maximum time to wait for hook execution before timing out',
 					},
 				],
 			},
@@ -256,6 +431,17 @@ export class ClaudeCodeStreaming implements INodeType {
 					requirePermissions?: boolean;
 					debug?: boolean;
 				};
+				const hooksConfiguration = this.getNodeParameter('hooksConfiguration', itemIndex) as {
+					enableHooks?: boolean;
+					hookEvents?: {
+						preToolUse?: Array<{ matcher: string; command: string; description?: string }>;
+						postToolUse?: Array<{ matcher: string; command: string; description?: string }>;
+						userPromptSubmit?: Array<{ command: string; description?: string }>;
+						stop?: Array<{ command: string; description?: string }>;
+					};
+					hooksOutputMode?: 'silent' | 'streaming' | 'webhook';
+					hookTimeout?: number;
+				};
 
 				// Create abort controller for timeout
 				const abortController = new AbortController();
@@ -306,6 +492,133 @@ export class ClaudeCodeStreaming implements INodeType {
 					},
 				};
 
+				// Setup Claude Code hooks if enabled
+				let hooksSetup = false;
+				if (hooksConfiguration.enableHooks && projectPath && projectPath.trim()) {
+					const fs = await import('fs');
+					const path = await import('path');
+					
+					try {
+						const projectDir = projectPath.trim();
+						const claudeDir = path.join(projectDir, '.claude');
+						const hooksFile = path.join(claudeDir, 'hooks.json');
+
+						// Create .claude directory if it doesn't exist
+						if (!fs.existsSync(claudeDir)) {
+							fs.mkdirSync(claudeDir, { recursive: true });
+						}
+
+						// Build hooks configuration
+						const hooksConfig: any = { hooks: {} };
+
+						// Add PreToolUse hooks
+						if (hooksConfiguration.hookEvents?.preToolUse?.length) {
+							hooksConfig.hooks.PreToolUse = hooksConfiguration.hookEvents.preToolUse.map(hook => ({
+								matcher: hook.matcher || '*',
+								hooks: [{
+									type: 'command',
+									command: hook.command,
+									...(hook.description && { description: hook.description })
+								}]
+							}));
+						}
+
+						// Add PostToolUse hooks
+						if (hooksConfiguration.hookEvents?.postToolUse?.length) {
+							hooksConfig.hooks.PostToolUse = hooksConfiguration.hookEvents.postToolUse.map(hook => ({
+								matcher: hook.matcher || '*',
+								hooks: [{
+									type: 'command',
+									command: hook.command,
+									...(hook.description && { description: hook.description })
+								}]
+							}));
+						}
+
+						// Add UserPromptSubmit hooks (no matcher needed)
+						if (hooksConfiguration.hookEvents?.userPromptSubmit?.length) {
+							hooksConfig.hooks.UserPromptSubmit = hooksConfiguration.hookEvents.userPromptSubmit.map(hook => ({
+								hooks: [{
+									type: 'command',
+									command: hook.command,
+									...(hook.description && { description: hook.description })
+								}]
+							}));
+						}
+
+						// Add Stop hooks (no matcher needed)
+						if (hooksConfiguration.hookEvents?.stop?.length) {
+							hooksConfig.hooks.Stop = hooksConfiguration.hookEvents.stop.map(hook => ({
+								hooks: [{
+									type: 'command',
+									command: hook.command,
+									...(hook.description && { description: hook.description })
+								}]
+							}));
+						}
+
+						// Write hooks configuration file
+						fs.writeFileSync(hooksFile, JSON.stringify(hooksConfig, null, 2));
+						hooksSetup = true;
+
+						if (additionalOptions.debug) {
+							console.log(`[ClaudeCodeStreaming] Hooks configuration written to: ${hooksFile}`);
+							console.log(`[ClaudeCodeStreaming] Hooks config:`, JSON.stringify(hooksConfig, null, 2));
+						}
+
+						// Send hooks setup notification if streaming enabled
+						if (streamingOptions.enableStreaming && hooksConfiguration.hooksOutputMode !== 'silent') {
+							const setupBlock = createBlockMessage('status', `Claude Code hooks configured: ${Object.keys(hooksConfig.hooks).join(', ')}`, {
+								hooksFile,
+								enabledHooks: Object.keys(hooksConfig.hooks),
+							});
+							streamingData.push({
+								json: setupBlock,
+								pairedItem: itemIndex,
+							});
+
+							// Send to webhook if configured
+							if (streamingOptions.webhookUrl && streamingOptions.webhookUrl.trim() && hooksConfiguration.hooksOutputMode === 'webhook') {
+								try {
+									await this.helpers.httpRequest({
+										method: 'POST',
+										url: streamingOptions.webhookUrl.trim(),
+										headers: {
+											'Content-Type': 'application/json',
+											'User-Agent': 'n8n-claude-code-streaming',
+										},
+										body: {
+											blockMessage: setupBlock,
+											context: originalContext,
+											timestamp: new Date().toISOString(),
+											source: 'claude-code-hooks-setup',
+										},
+										timeout: 5000,
+									});
+								} catch (webhookError) {
+									if (additionalOptions.debug) {
+										console.log(`[ClaudeCodeStreaming] Webhook error:`, webhookError);
+									}
+								}
+							}
+						}
+
+					} catch (hooksError) {
+						if (additionalOptions.debug) {
+							console.log(`[ClaudeCodeStreaming] Failed to setup hooks:`, hooksError);
+						}
+						
+						// Send error to streaming if enabled
+						if (streamingOptions.enableStreaming) {
+							const errorBlock = createBlockMessage('error', `Failed to setup hooks: ${hooksError instanceof Error ? hooksError.message : 'Unknown error'}`);
+							streamingData.push({
+								json: errorBlock,
+								pairedItem: itemIndex,
+							});
+						}
+					}
+				}
+
 				// Execute query with real-time streaming
 				const messages: SDKMessage[] = [];
 				const startTime = Date.now();
@@ -331,7 +644,38 @@ export class ClaudeCodeStreaming implements INodeType {
 										tool_name: content.name,
 										tool_input: content.input,
 									});
+
+									// Detect hook events if hooks are enabled
+									if (hooksSetup && hooksConfiguration.hooksOutputMode !== 'silent') {
+										const hookBlock = createBlockMessage('status', `Pre-tool hook triggered for: ${content.name}`, {
+											hookType: 'PreToolUse',
+											toolName: content.name,
+											toolInput: content.input,
+											hooksEnabled: true,
+										});
+										streamingData.push({
+											json: hookBlock,
+											pairedItem: itemIndex,
+										});
+									}
 								}
+							} else if (message.type === 'assistant' && (message as any).result) {
+								// Tool result - this might be tool completion
+								if (hooksSetup && hooksConfiguration.hooksOutputMode !== 'silent') {
+									const hookBlock = createBlockMessage('status', `Post-tool hook may be triggered`, {
+										hookType: 'PostToolUse',
+										hooksEnabled: true,
+									});
+									streamingData.push({
+										json: hookBlock,
+										pairedItem: itemIndex,
+									});
+								}
+								
+								blockMessage = createBlockMessage('tool_result', 'Tool execution completed', {
+									messageId: (message as any).id,
+									result: (message as any).result,
+								});
 							} else if (message.type === 'result') {
 								const resultMessage = message as any;
 								blockMessage = createBlockMessage('status', 'Execution completed', {
