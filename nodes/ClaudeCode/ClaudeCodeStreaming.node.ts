@@ -25,14 +25,14 @@ export class ClaudeCodeStreaming implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["prompt"]}}',
 		description:
-			'AI coding assistant with streaming block messages. Features single conversation thread with structured message output for real-time updates.',
+			'AI coding assistant with block message output. Features single conversation thread with structured message output delivered after completion.',
 		defaults: {
 			name: 'Claude Code Streaming',
 		},
 		inputs: [{ type: NodeConnectionType.Main }],
 		outputs: [
 			{ type: NodeConnectionType.Main, displayName: 'Main' },
-			{ type: NodeConnectionType.Main, displayName: 'Streaming' }
+			{ type: NodeConnectionType.Main, displayName: 'Block Messages' }
 		],
 		properties: [
 			{
@@ -154,18 +154,18 @@ export class ClaudeCodeStreaming implements INodeType {
 				description: 'Select which built-in tools Claude Code is allowed to use during execution',
 			},
 			{
-				displayName: 'Streaming Options',
+				displayName: 'Block Message Options',
 				name: 'streamingOptions',
 				type: 'collection',
-				placeholder: 'Add Streaming Option',
+				placeholder: 'Add Block Message Option',
 				default: {},
 				options: [
 					{
-						displayName: 'Enable Block Message Streaming',
+						displayName: 'Enable Block Messages',
 						name: 'enableStreaming',
 						type: 'boolean',
 						default: true,
-						description: 'Whether to output structured block messages through the streaming output',
+						description: 'Whether to output structured block messages through the second output (delivered after completion)',
 					},
 					{
 						displayName: 'Include Timestamps',
@@ -173,22 +173,6 @@ export class ClaudeCodeStreaming implements INodeType {
 						type: 'boolean',
 						default: true,
 						description: 'Whether to include timestamps in block messages',
-					},
-					{
-						displayName: 'Real-Time Webhook URL',
-						name: 'webhookUrl',
-						type: 'string',
-						default: '',
-						description: 'Webhook URL to send real-time streaming updates (optional). Example: https://your-n8n-instance/webhook/claude-streaming.',
-						placeholder: 'https://your-n8n-instance/webhook/claude-streaming',
-					},
-					{
-						displayName: 'Channel Context',
-						name: 'channelContext',
-						type: 'string',
-						default: '',
-						description: 'Channel or conversation identifier for context (e.g., slack-C1234567890)',
-						placeholder: 'slack-C1234567890',
 					},
 				],
 			},
@@ -352,7 +336,6 @@ export class ClaudeCodeStreaming implements INodeType {
 				const streamingOptions = this.getNodeParameter('streamingOptions', itemIndex) as {
 					enableStreaming?: boolean;
 					includeTimestamps?: boolean;
-					webhookUrl?: string;
 				};
 				const additionalOptions = this.getNodeParameter('additionalOptions', itemIndex) as {
 					systemPrompt?: string;
@@ -425,7 +408,6 @@ export class ClaudeCodeStreaming implements INodeType {
 					console.log(`[ClaudeCodeStreaming] Prompt: ${prompt.substring(0, 100)}...`);
 					console.log(`[ClaudeCodeStreaming] Model: ${model}`);
 					console.log(`[ClaudeCodeStreaming] Streaming enabled: ${streamingOptions.enableStreaming}`);
-					console.log(`[ClaudeCodeStreaming] Webhook URL: ${streamingOptions.webhookUrl || 'Not configured'}`);
 					console.log(`[ClaudeCodeStreaming] MCP enabled: ${mcpConfiguration.enableMCP}`);
 					if (mcpConfiguration.enableMCP) {
 						if (mcpConfiguration.mcpConfigPath) {
@@ -507,16 +489,16 @@ export class ClaudeCodeStreaming implements INodeType {
 					},
 				};
 
-				// Execute query with real-time streaming
+				// Execute query
 				const messages: SDKMessage[] = [];
 				const startTime = Date.now();
 
 				try {
-					// Process each message as it arrives for real-time streaming
+					// Process each message as it arrives
 					for await (const message of query(queryOptions)) {
 						messages.push(message);
 
-						// Create and send block messages immediately if streaming enabled
+						// Create block messages if enabled
 						if (streamingOptions.enableStreaming) {
 							let blockMessage: BlockMessage | null = null;
 
@@ -542,44 +524,12 @@ export class ClaudeCodeStreaming implements INodeType {
 								});
 							}
 
-							// Send block message to streaming output immediately
+							// Add block message to output array
 							if (blockMessage) {
-								// Add to streaming output for final batch delivery
 								streamingData.push({
 									json: blockMessage,
 									pairedItem: itemIndex,
 								});
-
-								// Send real-time update to webhook if URL is configured
-								if (streamingOptions.webhookUrl && streamingOptions.webhookUrl.trim()) {
-									try {
-										// Send immediately via HTTP request for real-time updates
-										await this.helpers.httpRequest({
-											method: 'POST',
-											url: streamingOptions.webhookUrl.trim(),
-											headers: {
-												'Content-Type': 'application/json',
-												'User-Agent': 'n8n-claude-code-streaming',
-											},
-											body: {
-												blockMessage,
-												context: originalContext,
-												timestamp: new Date().toISOString(),
-												source: 'claude-code-streaming-node',
-											},
-											timeout: 5000, // 5 second timeout for webhook calls
-										});
-
-										if (additionalOptions.debug) {
-											console.log(`[ClaudeCodeStreaming] Sent real-time update: ${blockMessage.type}`);
-										}
-									} catch (webhookError) {
-										// Log webhook errors but don't fail the main execution
-										if (additionalOptions.debug) {
-											console.warn(`[ClaudeCodeStreaming] Webhook error:`, webhookError instanceof Error ? webhookError.message : 'Unknown error');
-										}
-									}
-								}
 							}
 						}
 
@@ -675,29 +625,6 @@ export class ClaudeCodeStreaming implements INodeType {
 							json: errorBlock,
 							pairedItem: itemIndex,
 						});
-
-						// Send error to webhook for real-time notification
-						if (streamingOptions.webhookUrl && streamingOptions.webhookUrl.trim()) {
-							try {
-								await this.helpers.httpRequest({
-									method: 'POST',
-									url: streamingOptions.webhookUrl.trim(),
-									headers: {
-										'Content-Type': 'application/json',
-										'User-Agent': 'n8n-claude-code-streaming',
-									},
-									body: {
-										blockMessage: errorBlock,
-										context: originalContext,
-										timestamp: new Date().toISOString(),
-										source: 'claude-code-streaming-node-error',
-									},
-									timeout: 5000,
-								});
-							} catch (webhookError) {
-								// Ignore webhook errors during error handling
-							}
-						}
 					}
 
 					throw queryError;

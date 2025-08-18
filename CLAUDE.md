@@ -12,6 +12,8 @@ n8n-nodes-claudecode-streaming is an n8n community node package that integrates 
 
 **Our definition of SIMPLE** means coming up with elegant solutions for complex problems. SIMPLE does not mean "less features" or "different functionality" it means figuring out the clearest path to logical completion without extra cruft. 
 
+**NEVER CHANGE PLANS MID EXECUTION** follow the instructions you've been given.
+
 ## 🎯 **SIMPLIFIED ARCHITECTURE PRINCIPLES**
 
 **CORE DESIGN PHILOSOPHY**
