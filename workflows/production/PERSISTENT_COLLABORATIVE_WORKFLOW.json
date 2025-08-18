@@ -110,7 +110,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Context Monitor - load from external file\n// This code is loaded from context-monitor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/context-monitor.js', 'utf8'));"
+        "jsCode": "// Context Monitor - load from external file\n// This code is loaded from context-monitor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/context-monitor.js', 'utf8'));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -156,7 +156,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auto-Compaction Manager - load from external file\n// This code is loaded from auto-compaction-manager.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/auto-compaction-manager.js', 'utf8'));"
+        "jsCode": "// Auto-Compaction Manager - load from external file\n// This code is loaded from auto-compaction-manager.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/auto-compaction-manager.js', 'utf8'));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -170,7 +170,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Compaction Status Blocks - load from external file\n// This code is loaded from compaction-status-blocks.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/compaction-status-blocks.js', 'utf8'));"
+        "jsCode": "// Compaction Status Blocks - load from external file\n// This code is loaded from compaction-status-blocks.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/compaction-status-blocks.js', 'utf8'));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -308,7 +308,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Simplified Streaming Processor - load from external file\n// This code is loaded from simplified-streaming-processor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/simplified-streaming-processor.js', 'utf8'));"
+        "jsCode": "// Simplified Streaming Processor - load from external file\n// This code is loaded from simplified-streaming-processor.js\neval(require('fs').readFileSync('/home/node/n8n-nodes-claudecode-streaming/src/workflows/simplified-streaming-processor.js', 'utf8'));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

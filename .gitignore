@@ -6,3 +6,6 @@ dist
 npm-debug.log*
 yarn.lock
 .vscode/launch.json
+*.log
+tsc-errors.log
+bunx-tsc-errors.log

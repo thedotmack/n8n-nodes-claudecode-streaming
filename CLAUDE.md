@@ -154,7 +154,7 @@ When using Project Path, Claude Code automatically loads these configurations fr
 Based on the architecture and patterns established in this codebase:
 
 ### Workflow Design Philosophy
-- **External Code Organization**: Keep complex logic in external `.js` files (like `context-monitor.js`, `auto-compaction-manager.js`) rather than inline in n8n Code nodes. This enables better version control, testing, and maintainability.
+- **External Code Organization**: Keep complex logic in external `.js` files (like `src/workflows/context-monitor.js`, `src/workflows/auto-compaction-manager.js`) rather than inline in n8n Code nodes. This enables better version control, testing, and maintainability.
 - **Modular Functions**: Each external file should export a single primary function that can be loaded via `eval(require('fs').readFileSync(path))` pattern.
 - **Static Data as Persistence**: Use n8n workflow static data as the primary persistence layer for thread management and context tracking rather than external databases.
 
