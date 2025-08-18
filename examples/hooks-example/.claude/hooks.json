@@ -2,24 +2,24 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write",
+        "matcher": "^(Bash|Write)$",
         "hooks": [
           {
             "type": "command",
-            "command": "python ./hooks/security-validator.py",
-            "description": "Security validation for dangerous operations"
+            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/security-validator.py",
+            "timeout": 10
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write",
+        "matcher": "^Write$",
         "hooks": [
           {
             "type": "command",
-            "command": "python ./hooks/auto-formatter.py",
-            "description": "Auto-format code files after writing"
+            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/auto-formatter.py",
+            "timeout": 30
           }
         ]
       }
@@ -29,8 +29,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python ./hooks/prompt-validator.py",
-            "description": "Validate prompts for sensitive content"
+            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/prompt-validator.py",
+            "timeout": 5
           }
         ]
       }
@@ -40,8 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python ./hooks/stop-controller.py",
-            "description": "Control stop behavior"
+            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/stop-controller.py"
           }
         ]
       }
