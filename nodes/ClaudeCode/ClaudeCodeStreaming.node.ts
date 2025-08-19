@@ -423,8 +423,8 @@ export class ClaudeCodeStreaming implements INodeType {
 					}
 				}
 
-				// Get original message context for real-time streaming
-				const originalContext = items[itemIndex].json || {};
+				// Get original message context for real-time streaming (reserved for future use)
+				// const originalContext = items[itemIndex].json || {};
 
 				// Helper function to convert SDK messages to block messages
 				const createBlockMessage = (type: BlockMessage['type'], content: string, metadata?: Record<string, any>): BlockMessage => {
@@ -482,6 +482,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						permissionMode: (additionalOptions.requirePermissions ? 'default' : 'bypassPermissions') as 'default' | 'bypassPermissions',
 						model,
 						continue: true, // Use SDK's conversation persistence
+						outputFormat: 'stream-json', // Enable real-time streaming JSON output
 						...(additionalOptions.systemPrompt && { systemPrompt: additionalOptions.systemPrompt }),
 						...(projectPath && projectPath.trim() && { cwd: projectPath.trim() }),
 						...(allowedTools.length > 0 && { allowedTools }),
