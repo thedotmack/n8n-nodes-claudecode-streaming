@@ -483,6 +483,7 @@ export class ClaudeCodeStreaming implements INodeType {
 						model,
 						continue: true, // Use SDK's conversation persistence
 						outputFormat: 'stream-json', // Enable real-time streaming JSON output
+						verbose: true, // Required when using stream-json output format
 						...(additionalOptions.systemPrompt && { systemPrompt: additionalOptions.systemPrompt }),
 						...(projectPath && projectPath.trim() && { cwd: projectPath.trim() }),
 						...(allowedTools.length > 0 && { allowedTools }),
